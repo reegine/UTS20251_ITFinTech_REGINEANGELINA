@@ -6,7 +6,6 @@ import Head from 'next/head';
 import toast from 'react-hot-toast';
 import { useCallback } from 'react';
 
-
 export default function Products() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +16,8 @@ export default function Products() {
     minPrice: '',
     maxPrice: '',
     inStock: false
-  });   
+  });
+  const [searchInput, setSearchInput] = useState('');
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 12,
@@ -94,10 +94,15 @@ export default function Products() {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    handleFilterChange('search', searchInput);
+  };
+
   const handleAddToCart = useCallback((product) => {
-      addToCart(product);
-      toast.success(`${product.name} added to cart!`);
-    }, [addToCart]);
+    addToCart(product);
+    toast.success(`${product.name} added to cart!`);
+  }, [addToCart]);
 
   const handlePageChange = (newPage) => {
     setPagination(prev => ({ ...prev, page: newPage }));
@@ -121,34 +126,39 @@ export default function Products() {
             <p className="text-lg text-gray-600">Discover our amazing collection</p>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-4 mb-8">
-            <div className="relative flex-1">
+          <div className="flex flex-col gap-4 mb-8">
+            <form onSubmit={handleSearchSubmit} className="relative w-full">
               <input
                 type="text"
                 placeholder="Search products..."
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg"
               />
               <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
-            </div>
+            </form>
 
-            <svg className="w-8 h-8 text-gray-500 justify-center pt-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            
-            <div className="flex-2">
-              <select
-                value={filters.category}
-                onChange={(e) => handleFilterChange('category', e.target.value)}
-                className="w-full py-2 pl-3 pr-10 border rounded-lg appearance-none bg-white"
-              >
-                {categories.map(category => (
-                  <option key={category} value={category}>
-                    {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1)}
-                  </option>
-                ))}
-              </select>
+            <div className="overflow-x-auto">
+              <div className="flex space-x-6 border-b pb-2 min-w-max">
+                {categories.map(category => {
+                  const isActive = filters.category === category;
+                  return (
+                    <button
+                      key={category}
+                      onClick={() => handleFilterChange('category', category)}
+                      className={`pb-2 text-sm font-medium whitespace-nowrap ${
+                        isActive
+                          ? 'text-pink-600 border-b-2 border-pink-600'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      {category === 'all'
+                        ? 'All Categories'
+                        : category.charAt(0).toUpperCase() + category.slice(1)}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -177,13 +187,16 @@ export default function Products() {
                   <h3 className="text-xl font-semibold mb-2">No products found</h3>
                   <p className="text-gray-600 mb-4">Try adjusting your search criteria</p>
                   <button 
-                    onClick={() => setFilters({
-                      search: '',
-                      category: 'all',
-                      minPrice: '',
-                      maxPrice: '',
-                      inStock: false
-                    })}
+                    onClick={() => {
+                      setSearchInput('');
+                      setFilters({
+                        search: '',
+                        category: 'all',
+                        minPrice: '',
+                        maxPrice: '',
+                        inStock: false
+                      });
+                    }}
                     className="bg-pink-600 text-white px-4 py-2 rounded-lg"
                   >
                     Show All Products
@@ -201,7 +214,6 @@ export default function Products() {
                     ))}
                   </div>
 
-                  {/* Pagination */}
                   {pagination.pages > 1 && (
                     <div className="mt-12 flex justify-center items-center space-x-2">
                       <button
