@@ -80,8 +80,8 @@ export default function Home() {
         style={{ backgroundImage: `url(${heroBg.src})` }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/20"></div>
-        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-          <h1 className="text-5xl md:text-6xl font-extrabold text-white drop-shadow-lg mb-6 pt-[5rem] leading-tight">
+        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center pb-[1rem] pt-[3rem]">
+          <h1 className="text-5xl md:text-6xl font-extrabold text-white drop-shadow-lg mb-6 leading-tight">
             Indulge in <span className="text-pink-400">Sweet Moments</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-200 mb-10 max-w-2xl mx-auto leading-relaxed drop-shadow">
