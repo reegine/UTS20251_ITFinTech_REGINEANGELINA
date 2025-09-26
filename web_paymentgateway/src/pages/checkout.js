@@ -53,41 +53,43 @@ export default function Checkout() {
     };
   }, [items]);
 
-  useEffect(() => {
-    if (items.length === 0 && !paymentUrl) {
-      router.push('/products');
-    }
-  }, [items, paymentUrl, router]);
+    useEffect(() => {
+        if (!paymentUrl || !order) return;
 
-  useEffect(() => {
-    if (!paymentUrl || !order) return;
-
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/orders?email=${customerInfo.email}`);
-        const data = await response.json();
-        
-        if (data.success) {
-          const currentOrder = data.data.find(o => o.order_id === order.order_id);
-          if (currentOrder && currentOrder.status !== 'pending') {
-            clearInterval(pollInterval);
-            setPaymentStatus(currentOrder.status);
+        const pollInterval = setInterval(async () => {
+            try {
+            // Check payment status directly
+            const response = await fetch(`/api/payments/status?order_id=${order.order_id}`);
             
-            if (currentOrder.status === 'paid') {
-              clearCart();
-              setTimeout(() => {
-                router.push('/orders?success=true');
-              }, 3000);
+            if (!response.ok) {
+                throw new Error('Failed to fetch payment status');
             }
-          }
-        }
-      } catch (error) {
-        console.error('Polling error:', error);
-      }
-    }, 5000);
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                const paymentStatus = result.data.status;
+                
+                if (paymentStatus !== 'pending') {
+                clearInterval(pollInterval);
+                setPaymentStatus(paymentStatus);
+                
+                if (paymentStatus === 'paid') {
+                    // Show success splash for 3 seconds then redirect
+                    clearCart();
+                    setTimeout(() => {
+                    router.push('/orders?success=true');
+                    }, 3000);
+                }
+                }
+            }
+            } catch (error) {
+            console.error('Polling error:', error);
+            }
+        }, 3000); // Check every 3 seconds
 
-    return () => clearInterval(pollInterval);
-  }, [paymentUrl, order, customerInfo.email, clearCart, router]);
+        return () => clearInterval(pollInterval);
+        }, [paymentUrl, order, clearCart, router]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -157,13 +159,12 @@ export default function Checkout() {
       const paymentResponse = await fetch('/api/payments/create', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+            'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          order_id: orderResult.data.order_id,
-          payment_method: 'virtual_account'
+            order_id: orderResult.data.order_id
         }),
-      });
+    });
 
       const contentType = paymentResponse.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {

@@ -47,6 +47,7 @@ const paymentSchema = new mongoose.Schema(
     payment_url: String,
     expiry_date: Date,
     paid_at: Date,
+    external_id: String, 
   },
   {
     timestamps: true,

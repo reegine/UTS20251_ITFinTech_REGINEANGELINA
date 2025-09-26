@@ -298,8 +298,6 @@ export default function Orders() {
                             <label className="font-medium">Customer:</label>
                             <p>{selectedOrder.customer_name} ({selectedOrder.customer_email})</p>
                             </div>
-
-                            
                             {selectedOrder.shipping_address && (
                             <div>
                                 <h4 className="font-medium mb-2">Shipping Address:</h4>

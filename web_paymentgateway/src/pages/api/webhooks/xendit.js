@@ -1,139 +1,128 @@
-import dbConnect from '../../../lib/mongodb';
-import Order from '../../../models/Order';
-import Payment from '../../../models/Payment';
+import connectDB from '../../lib/mongodb';
+import Order from '../../models/Order';
+import Payment from '../../models/Payment';
 
 export default async function handler(req, res) {
+  console.log('🔔 Xendit Webhook received');
+  
+  // Set CORS headers for webhook
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-CALLBACK-TOKEN');
+  
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
   if (req.method !== 'POST') {
+    console.error('❌ Method not allowed:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  await dbConnect();
-
   try {
-    const callbackToken = req.headers['x-callback-token'];
-    const expectedToken = process.env.XENDIT_WEBHOOK_TOKEN;
-    
-    if (callbackToken !== expectedToken) {
-      console.error('Invalid webhook token');
-      return res.status(401).json({ error: 'Unauthorized' });
+    await connectDB();
+
+    // Log the headers for debugging
+    console.log('Webhook headers:', {
+      'x-callback-token': req.headers['x-callback-token'],
+      'webhook-id': req.headers['webhook-id'],
+      'content-type': req.headers['content-type']
+    });
+
+    const webhookData = req.body;
+    console.log('📨 Webhook body received:', JSON.stringify(webhookData, null, 2));
+
+    let paymentId, status, paidAt, externalId;
+
+    // Handle different webhook formats
+    if (webhookData.event === 'payment.capture') {
+      // Payment capture webhook (new format)
+      paymentId = webhookData.data.payment_id;
+      status = 'PAID'; // payment.capture means it's paid
+      paidAt = webhookData.created;
+      externalId = webhookData.data.reference_id;
+      console.log('💰 Payment capture webhook detected');
+    } else if (webhookData.id && webhookData.external_id) {
+      // Invoice webhook (traditional format)
+      paymentId = webhookData.id;
+      status = webhookData.status;
+      paidAt = webhookData.paid_at;
+      externalId = webhookData.external_id;
+      console.log('📄 Invoice webhook detected');
+    } else {
+      console.error('❌ Unknown webhook format');
+      return res.status(400).json({ error: 'Unknown webhook format' });
     }
 
-    const payload = req.body;
-    const eventType = payload.event || payload.status;
-    
-    console.log('Webhook received:', eventType, payload);
+    console.log(`🔍 Looking for payment: ${paymentId}, external_id: ${externalId}`);
 
-    switch (eventType) {
-      case 'invoice.paid':
-      case 'PAID':
-        await handlePaymentSuccess(payload);
-        break;
-      
-      case 'invoice.expired':
-      case 'EXPIRED':
-        await handlePaymentExpired(payload);
-        break;
-      
-      case 'invoice.failed':
-      case 'FAILED':
-        await handlePaymentFailed(payload);
-        break;
-      
-      default:
-        console.log('Unhandled webhook event:', eventType);
+    // Try to find payment by multiple fields
+    let payment = await Payment.findOne({
+      $or: [
+        { xendit_invoice_id: paymentId },
+        { payment_id: paymentId },
+        { xendit_invoice_id: externalId }
+      ]
+    }).populate('order');
+
+    if (!payment) {
+      console.log('🔍 Payment not found by ID, trying by external_id as order_id');
+      // Try to find by order_id (external_id)
+      const order = await Order.findOne({ order_id: externalId });
+      if (order) {
+        payment = await Payment.findOne({ order: order._id }).populate('order');
+      }
     }
 
-    res.status(200).json({ received: true });
+    if (!payment) {
+      console.error('❌ Payment not found for webhook:', { paymentId, externalId });
+      // Still return 200 to prevent Xendit from retrying
+      return res.status(200).json({ received: true, warning: 'Payment not found' });
+    }
 
-  } catch (error) {
-    console.error('Webhook processing error:', error);
-    res.status(500).json({ error: 'Webhook processing failed' });
-  }
-}
-
-async function handlePaymentSuccess(payload) {
-  try {
-    const externalId = payload.external_id;
+    // Update payment status
+    payment.status = status.toLowerCase();
+    payment.xendit_response = webhookData;
     
-    await Order.findOneAndUpdate(
-      { order_id: externalId },
-      { 
-        status: 'paid',
-        payment_id: payload.id,
-        xendit_response: payload,
-      }
-    );
+    if (paidAt) {
+      payment.paid_at = new Date(paidAt);
+    }
 
-    await Payment.findOneAndUpdate(
-      { order_id: externalId },
-      { 
-        status: 'paid',
-        xendit_response: payload,
-      }
-    );
+    await payment.save();
+    console.log(`✅ Updated payment ${paymentId} to status: ${status}`);
 
-    console.log(`Order ${externalId} marked as paid`);
+    // Update associated order status
+    if (payment.order) {
+      let orderStatus = 'pending';
+      
+      if (status === 'PAID') {
+        orderStatus = 'paid';
+      } else if (status === 'EXPIRED') {
+        orderStatus = 'expired';
+      } else if (status === 'FAILED') {
+        orderStatus = 'failed';
+      }
+
+      await Order.findByIdAndUpdate(payment.order._id, {
+        status: orderStatus,
+        updated_at: new Date()
+      });
+      
+      console.log(`✅ Updated order ${payment.order.order_id} to status: ${orderStatus}`);
+    }
+
+    res.status(200).json({ 
+      received: true,
+      message: 'Webhook processed successfully'
+    });
+
   } catch (error) {
-    console.error('Error handling payment success:', error);
+    console.error('❌ Webhook processing error:', error);
+    // Still return 200 to prevent Xendit from retrying excessively
+    res.status(200).json({ 
+      received: true,
+      error: 'Processing failed but acknowledged'
+    });
   }
-}
-
-async function handlePaymentExpired(payload) {
-  try {
-    const externalId = payload.external_id;
-    
-    await Order.findOneAndUpdate(
-      { order_id: externalId },
-      { 
-        status: 'expired',
-        xendit_response: payload,
-      }
-    );
-
-    await Payment.findOneAndUpdate(
-      { order_id: externalId },
-      { 
-        status: 'expired',
-        xendit_response: payload,
-      }
-    );
-
-    console.log(`Order ${externalId} marked as expired`);
-  } catch (error) {
-    console.error('Error handling payment expiry:', error);
-  }
-}
-
-async function handlePaymentFailed(payload) {
-  try {
-    const externalId = payload.external_id;
-    
-    await Order.findOneAndUpdate(
-      { order_id: externalId },
-      { 
-        status: 'failed',
-        xendit_response: payload,
-      }
-    );
-
-    await Payment.findOneAndUpdate(
-      { order_id: externalId },
-      { 
-        status: 'failed',
-        xendit_response: payload,
-      }
-    );
-
-    console.log(`Order ${externalId} marked as failed`);
-  } catch (error) {
-    console.error('Error handling payment failure:', error);
-  }
-}
-
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '1mb',
-    },
-  },
 }
