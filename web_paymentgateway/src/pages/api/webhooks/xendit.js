@@ -62,8 +62,24 @@ export default async function handler(req, res) {
       return res.status(200).json({ received: true, warning: 'Payment not found' });
     }
 
+    // Map Xendit status to your payment model status
+    let paymentStatus;
+    switch (status) {
+      case 'PAID':
+        paymentStatus = 'paid'; // This now matches your enum
+        break;
+      case 'EXPIRED':
+        paymentStatus = 'expired';
+        break;
+      case 'FAILED':
+        paymentStatus = 'failed';
+        break;
+      default:
+        paymentStatus = 'pending';
+    }
+
     // Update payment status
-    payment.status = status.toLowerCase();
+    payment.status = paymentStatus;
     payment.xendit_response = webhookData;
     
     if (paidAt) {
@@ -71,7 +87,7 @@ export default async function handler(req, res) {
     }
 
     await payment.save();
-    console.log(`✅ Updated payment for order ${externalId} to status: ${status}`);
+    console.log(`✅ Updated payment for order ${externalId} to status: ${paymentStatus}`);
 
     // Update associated order status
     let orderStatus = 'pending';
@@ -92,14 +108,23 @@ export default async function handler(req, res) {
 
     res.status(200).json({ 
       received: true,
-      message: 'Webhook processed successfully'
+      message: 'Webhook processed successfully',
+      payment_status: paymentStatus,
+      order_status: orderStatus
     });
 
   } catch (error) {
     console.error('❌ Webhook processing error:', error);
+    
+    // More detailed error logging
+    if (error.name === 'ValidationError') {
+      console.error('Validation errors:', error.errors);
+    }
+    
     res.status(200).json({ 
       received: true,
-      error: 'Processing failed but acknowledged'
+      error: 'Processing failed but acknowledged',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
