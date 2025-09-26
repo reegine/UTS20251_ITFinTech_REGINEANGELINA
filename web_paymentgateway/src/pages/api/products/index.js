@@ -11,14 +11,18 @@ export default async function handler(req, res) {
     switch (req.method) {
       case 'GET':
         try {
-          const { currency, search, page = 1, limit = 12 } = req.query;
+          const { currency, search, category, page = 1, limit = 12 } = req.query;
           
-          console.log('📋 Query parameters:', { currency, search, page, limit });
+          console.log('📋 Query parameters:', { currency, search, category, page, limit });
           
           let filter = { is_active: true };
           
           if (currency && currency !== 'all') {
             filter.currency = currency;
+          }
+
+          if (category && category !== 'all') {
+            filter.category = category;
           }
           
           if (search) {

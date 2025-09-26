@@ -53,43 +53,39 @@ export default function Checkout() {
     };
   }, [items]);
 
-    useEffect(() => {
-        if (!paymentUrl || !order) return;
+   useEffect(() => {
+    if (!paymentUrl || !order) return;
 
-        const pollInterval = setInterval(async () => {
-            try {
-            // Check payment status directly
-            const response = await fetch(`/api/payments/status?order_id=${order.order_id}`);
+    const pollInterval = setInterval(async () => {
+        try {
+        const response = await fetch(`/api/payments/status?order_id=${order.order_id}`);
+        if (!response.ok) throw new Error('Failed to fetch payment status');
+        
+        const result = await response.json();
+        if (result.success) {
+            const paymentStatus = result.data.status;
             
-            if (!response.ok) {
-                throw new Error('Failed to fetch payment status');
-            }
+            if (paymentStatus !== 'pending') {
+            clearInterval(pollInterval);
+            setPaymentStatus(paymentStatus);
             
-            const result = await response.json();
-            
-            if (result.success) {
-                const paymentStatus = result.data.status;
+            if (paymentStatus === 'paid') {
+                clearCart();
+                localStorage.removeItem('cart');
                 
-                if (paymentStatus !== 'pending') {
-                clearInterval(pollInterval);
-                setPaymentStatus(paymentStatus);
-                
-                if (paymentStatus === 'paid') {
-                    // Show success splash for 3 seconds then redirect
-                    clearCart();
-                    setTimeout(() => {
-                    router.push('/orders?success=true');
-                    }, 3000);
-                }
-                }
+                setTimeout(() => {
+                router.push('/orders?success=true');
+                }, 3000);
             }
-            } catch (error) {
-            console.error('Polling error:', error);
             }
-        }, 3000); // Check every 3 seconds
+        }
+        } catch (error) {
+        console.error('Polling error:', error);
+        }
+    }, 3000);
 
-        return () => clearInterval(pollInterval);
-        }, [paymentUrl, order, clearCart, router]);
+    return () => clearInterval(pollInterval);
+    }, [paymentUrl, order, clearCart, router]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

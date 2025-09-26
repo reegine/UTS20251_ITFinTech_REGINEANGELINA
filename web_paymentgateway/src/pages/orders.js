@@ -251,11 +251,7 @@ export default function Orders() {
                           >
                             View Details
                           </button>
-                          {order.status === 'paid' && (
-                            <button className="btn-primary btn-small">
-                              Track Order
-                            </button>
-                          )}
+                    
                         </div>
                       </div>
                     </div>

@@ -76,12 +76,12 @@ export default function Home() {
       </Head>
 
       <section
-        className="relative flex items-center justify-center bg-cover bg-center bg-no-repeat min-h-[70vh]"
+        className="relative flex items-center justify-center bg-cover bg-center bg-no-repeat min-h-[60vh]"
         style={{ backgroundImage: `url(${heroBg.src})` }}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/20"></div>
         <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-          <h1 className="text-5xl md:text-6xl font-extrabold text-white drop-shadow-lg mb-6 leading-tight">
+          <h1 className="text-5xl md:text-6xl font-extrabold text-white drop-shadow-lg mb-6 pt-[5rem] leading-tight">
             Indulge in <span className="text-pink-400">Sweet Moments</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-200 mb-10 max-w-2xl mx-auto leading-relaxed drop-shadow">
@@ -105,7 +105,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-24 bg-gradient-to-b from-pink-50 to-white">
+      <section className="pt-24 pb-18 bg-gradient-to-b from-pink-50 to-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-extrabold text-gray-900 mb-4">Our Bestsellers</h2>
@@ -163,7 +163,7 @@ export default function Home() {
       <section className="py-24 bg-white">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-extrabold text-gray-900 mb-4">Why Regine’s Dessert?</h2>
+            <h2 className="text-4xl font-extrabold text-gray-900 mb-4">Why Gine’s Dessert?</h2>
             <p className="text-lg text-gray-600">We make sweet moments even sweeter.</p>
           </div>
 
