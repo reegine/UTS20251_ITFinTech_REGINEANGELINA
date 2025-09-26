@@ -55,24 +55,19 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Unknown webhook format' });
     }
 
-    console.log(`🔍 Looking for payment: ${paymentId}, external_id: ${externalId}`);
+    console.log(`🔍 Looking up payment via external_id (order_id): ${externalId}`);
 
-    // Try to find payment by multiple fields
-    let payment = await Payment.findOne({
-      $or: [
-        { xendit_invoice_id: paymentId },
-        { payment_id: paymentId },
-        { xendit_invoice_id: externalId }
-      ]
-    }).populate('order');
+    // ✅ Always use external_id → order_id → payment
+    const order = await Order.findOne({ order_id: externalId });
+    if (!order) {
+    console.error('❌ Order not found for external_id:', externalId);
+    return res.status(200).json({ received: true, warning: 'Order not found' });
+    }
 
+    const payment = await Payment.findOne({ order: order._id }).populate('order');
     if (!payment) {
-      console.log('🔍 Payment not found by ID, trying by external_id as order_id');
-      // Try to find by order_id (external_id)
-      const order = await Order.findOne({ order_id: externalId });
-      if (order) {
-        payment = await Payment.findOne({ order: order._id }).populate('order');
-      }
+    console.error('❌ Payment not found for order:', externalId);
+    return res.status(200).json({ received: true, warning: 'Payment not found' });
     }
 
     if (!payment) {
