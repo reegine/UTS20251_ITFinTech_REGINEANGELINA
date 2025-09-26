@@ -259,7 +259,7 @@ export default function Products() {
               <>
                 <div className="mb-6 text-center">
                   <span className="text-gray-600">
-                    {filters.category !== 'all' && ` in ${filters.category.charAt(0).toUpperCase() + filters.category.slice(1)}`}
+                    {/* {filters.category !== 'all' && ` in ${filters.category.charAt(0).toUpperCase() + filters.category.slice(1)}`} */}
                   </span>
                 </div>
 
