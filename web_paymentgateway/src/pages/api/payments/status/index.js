@@ -19,7 +19,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Find the order
     const order = await Order.findOne({ order_id });
     if (!order) {
       return res.status(404).json({ 
@@ -28,7 +27,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Find the payment
     const payment = await Payment.findOne({ order: order._id });
     if (!payment) {
       return res.status(404).json({ 

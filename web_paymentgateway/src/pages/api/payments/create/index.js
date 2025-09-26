@@ -2,9 +2,7 @@ import connectDB from '../../../../lib/mongodb';
 import Order from '../../../../models/Order';
 import Payment from '../../../../models/Payment';
 
-export default async function handler(req, res) {
-  console.log('💳 Payment create API called');
-  
+export default async function handler(req, res) {  
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -53,10 +51,8 @@ export default async function handler(req, res) {
       ...(order.admin_fee > 0 ? [{ name: 'Admin Fee', quantity: 1, price: parseFloat(order.admin_fee) }] : [])
     ];
 
-    // 🔧 FIX 1: Clean up webhook URL (remove trailing space)
-    const webhookUrl = 'https://uts-20251-it-fin-tech-regineangelin.vercel.app/api/webhooks/xendit'; // ← no space!
+    const webhookUrl = 'https://uts-20251-it-fin-tech-regineangelin.vercel.app/api/webhooks/xendit';
 
-    // 🔧 FIX 2: Clean up redirect URLs — trim whitespace and ensure no extra spaces
     const baseUrl = (process.env.NEXTAUTH_URL || 'https://uts-20251-it-fin-tech-regineangelin.vercel.app').trim();
     const successUrl = `${baseUrl}/orders?success=true`;
     const failureUrl = `${baseUrl}/orders?success=false`;
@@ -73,17 +69,14 @@ export default async function handler(req, res) {
         email: order.customer_email,
         mobile_number: order.customer_phone || '+6281234567890'
       },
-      success_redirect_url: successUrl,   // ← CLEAN
-      failure_redirect_url: failureUrl,   // ← CLEAN
+      success_redirect_url: successUrl,
+      failure_redirect_url: failureUrl,
       items: xenditItems,
       should_send_email: false,
-      // 🔧 Optional: explicitly set webhook URL if needed (though Xendit uses dashboard setting)
-      // callback_url: webhookUrl 
     };
 
     console.log('📤 Sending to Xendit:', JSON.stringify(xenditPayload, null, 2));
 
-    // 🔧 FIX 3: Remove trailing space in API URL
     const xenditResponse = await fetch('https://api.xendit.co/v2/invoices', {
       method: 'POST',
       headers: {
@@ -116,11 +109,10 @@ export default async function handler(req, res) {
     console.log('✅ Xendit invoice created:', xenditData.id);
     console.log('Invoice URL:', xenditData.invoice_url);
 
-    // 🔸 You're already saving xendit_invoice_id correctly — great!
     const payment = await Payment.create({
       order: order._id,
-      payment_id: xenditData.id,           // same as invoice ID
-      xendit_invoice_id: xenditData.id,    // ✅ critical for webhook matching
+      payment_id: xenditData.id,
+      xendit_invoice_id: xenditData.id,
       amount: order.total_amount,
       currency: order.currency,
       payment_method: 'invoice',
@@ -148,7 +140,6 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('❌ Payment creation error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error: ' + error.message,
