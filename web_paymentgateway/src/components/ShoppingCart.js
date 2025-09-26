@@ -63,7 +63,7 @@ const ShoppingCart = ({ isOpen, onClose }) => {
                 key={item._id}
                 className="flex items-center space-x-4 p-4 bg-pink-50 rounded-xl"
               >
-                <img
+                <image
                   src={item.image_url}
                   alt={item.name}
                   className="w-16 h-16 object-cover rounded-lg"

@@ -2,11 +2,20 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import heroBg from '../../dummy_data/hero-bg.png';
+import Image from 'next/image';
+interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  image_url: string;
+}
 
 export default function Home() {
-  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-
+  
   useEffect(() => {
     fetchFeaturedProducts();
   }, []);
@@ -59,7 +68,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Regine's Dessert – Favorite Dessert Shop</title>
+        <title>Regine’s Dessert – Favorite Dessert Shop</title>
         <meta
           name="description"
           content="Order your favorite desserts online with fast delivery and secure payments."
@@ -111,17 +120,15 @@ export default function Home() {
           ) : (
             <div className="grid md:grid-cols-3 gap-10">
               {featuredProducts.map((product) => (
-                <div
-                  key={product._id}
-                  className="bg-white rounded-3xl shadow-md hover:shadow-xl transition transform hover:-translate-y-1 p-6 flex flex-col"
-                >
-                  <img
+                <div key={product._id} className="...">
+                  <Image
                     src={product.image_url}
                     alt={product.name}
+                    width={300}
+                    height={200}
                     className="w-full h-56 object-cover rounded-2xl mb-5"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        'https://via.placeholder.com/300x200?text=Dessert+Image';
+                      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x200?text=Dessert+Image';
                     }}
                   />
                   <h3 className="text-lg font-bold text-gray-800 mb-2">{product.name}</h3>
@@ -156,7 +163,7 @@ export default function Home() {
       <section className="py-24 bg-white">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-extrabold text-gray-900 mb-4">Why Regine's Dessert?</h2>
+            <h2 className="text-4xl font-extrabold text-gray-900 mb-4">Why Regine’s Dessert?</h2>
             <p className="text-lg text-gray-600">We make sweet moments even sweeter.</p>
           </div>
 

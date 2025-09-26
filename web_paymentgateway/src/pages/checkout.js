@@ -241,7 +241,7 @@ export default function Checkout() {
                 {items.map(item => (
                   <div key={item._id} className="flex items-center justify-between py-3 border-b">
                     <div className="flex items-center space-x-4">
-                      <img 
+                      <image 
                         src={item.image_url} 
                         alt={item.name}
                         className="w-16 h-16 object-cover rounded"

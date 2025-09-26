@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { useRouter } from 'next/router';
+import { useRouter, router } from 'next/router';
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -219,7 +219,7 @@ export default function Orders() {
                           <div key={index} className="order-item flex justify-between items-center py-3 border-b border-gray-100 last:border-0">
                             <div className="flex items-center space-x-3">
                               {item.product_image && (
-                                <img 
+                                <image
                                   src={item.product_image} 
                                   alt={item.product_name}
                                   className="w-12 h-12 object-cover rounded"

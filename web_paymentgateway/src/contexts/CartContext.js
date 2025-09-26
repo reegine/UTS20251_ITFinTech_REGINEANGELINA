@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import toast, { Toaster } from "react-hot-toast";
+import { Toaster } from 'react-hot-toast';
 
 const CartContext = createContext();
 

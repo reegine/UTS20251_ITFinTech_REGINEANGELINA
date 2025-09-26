@@ -1,9 +1,10 @@
+import { AppProps } from 'next/app';
 import { CartProvider } from '../contexts/CartContext';
 import Header from '../components/Header';
 import { Toaster } from 'react-hot-toast';
 import '../styles/globals.css';
 
-export default function MyApp({ Component, pageProps }) {
+export default function MyApp({ Component, pageProps }: AppProps) {
   return (
     <CartProvider>
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-amber-50">
@@ -11,9 +12,10 @@ export default function MyApp({ Component, pageProps }) {
         <main className="mx-auto">
           <Component {...pageProps} />
         </main>
+        <Toaster />
         <footer className="bg-white/70 backdrop-blur-sm border-t border-pink-100 mt-10">
           <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col sm:flex-row justify-between items-center text-gray-600 text-sm">
-            <p>© {new Date().getFullYear()} Regine's Dessert. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Regine&apos;s Dessert. All rights reserved.</p>
             <div className="flex space-x-4 mt-3 sm:mt-0">
               <a
                 href="https://www.instagram.com/im_reegine/?__d=11"

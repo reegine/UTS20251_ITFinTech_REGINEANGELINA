@@ -1,13 +1,4 @@
-import { useCart } from '../contexts/CartContext';
-
 export default function ProductCard({ product, onAddToCart }) {
-  const { addToCart } = useCart();
-
-  const handleAddToCart = () => {
-    addToCart(product);
-    if (onAddToCart) onAddToCart();
-  };
-
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-ID').format(price);
   };
@@ -15,7 +6,7 @@ export default function ProductCard({ product, onAddToCart }) {
   return (
     <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300">
     <div className="relative h-56 overflow-hidden">
-        <img
+        <image
         src={product.image_url}
         alt={product.name}
         className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"

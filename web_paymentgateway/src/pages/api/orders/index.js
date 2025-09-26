@@ -123,7 +123,7 @@ export default async function handler(req, res) {
         success: true,
         data: populatedOrder
         });
-    } catch (error) {
+    } catch (_) {
         res.status(500).json({
         success: false,
         error: 'Failed to create order: ' + error.message
