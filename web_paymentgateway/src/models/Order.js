@@ -55,7 +55,12 @@ const orderSchema = new mongoose.Schema({
     country: String,
     zip_code: String
   },
-  items: [orderItemSchema],
+  items: [orderItemSchema],  
+  subtotal: { type: Number, required: true },
+  tax_amount: { type: Number, required: true },
+  delivery_fee: { type: Number, required: true },
+  admin_fee: { type: Number, required: true },
+  
   total_amount: {
     type: Number,
     required: true,
@@ -78,11 +83,6 @@ const orderSchema = new mongoose.Schema({
   notes: String
 }, {
   timestamps: true
-});
-
-orderSchema.pre('save', function(next) {
-  this.total_amount = this.items.reduce((total, item) => total + item.total_price, 0);
-  next();
 });
 
 orderSchema.index({ order_id: 1 });
