@@ -1,6 +1,6 @@
-import connectDB from '../../lib/mongodb';
-import Order from '../../models/Order';
-import Payment from '../../models/Payment';
+import connectDB from '../../../lib/mongodb';
+import Order from '../../../models/Order';
+import Payment from '../../../models/Payment';
 
 export default async function handler(req, res) {
   console.log('🔔 Xendit Webhook received');
