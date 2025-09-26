@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { useCart } from '../contexts/CartContext';
 import Head from 'next/head';
+import Image from 'next/image';
 
 const TAX_RATE = 0.11;
 const DELIVERY_FEE = 15000; 
@@ -238,9 +239,11 @@ export default function Checkout() {
                 {items.map(item => (
                   <div key={item._id} className="flex items-center justify-between py-3 border-b">
                     <div className="flex items-center space-x-4">
-                      <image 
+                      <Image 
                         src={item.image_url} 
                         alt={item.name}
+                        width={100}
+                        height={100}
                         className="w-16 h-16 object-cover rounded"
                         onError={(e) => {
                           e.target.src = 'https://via.placeholder.com/100x100?text=Product';
