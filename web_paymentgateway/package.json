@@ -7,14 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "vercel-build": "npm run prepare && next build"
+    "vercel-build": "next build"
   },
   "dependencies": {
+    "next": "15.5.4",
     "bcryptjs": "^2.4.3",
     "crypto": "^1.0.1",
     "mongodb": "^6.3.0",
     "mongoose": "^8.0.3",
-    "next": "latest",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-hot-toast": "^2.6.0",
