@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 export default function ProductCard({ product, onAddToCart }) {
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-ID').format(price);
@@ -6,9 +8,11 @@ export default function ProductCard({ product, onAddToCart }) {
   return (
     <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300">
     <div className="relative h-56 overflow-hidden">
-        <image
+        <Image
         src={product.image_url}
         alt={product.name}
+        width={300}
+        height={200}
         className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
         onError={(e) => (e.target.src = "https://via.placeholder.com/300x200?text=Dessert")}
         />

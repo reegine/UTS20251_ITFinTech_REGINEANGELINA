@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useCart } from '../contexts/CartContext';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 
 const TAX_RATE = 0.11;
 const DELIVERY_FEE = 15000;
@@ -63,9 +64,11 @@ const ShoppingCart = ({ isOpen, onClose }) => {
                 key={item._id}
                 className="flex items-center space-x-4 p-4 bg-pink-50 rounded-xl"
               >
-                <image
+                <Image
                   src={item.image_url}
                   alt={item.name}
+                  width={64}
+                  height={64}
                   className="w-16 h-16 object-cover rounded-lg"
                 />
                 <div className="flex-1">

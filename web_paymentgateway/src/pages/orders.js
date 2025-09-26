@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useRouter, router } from 'next/router';
+import Image from 'next/image';
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -219,9 +220,11 @@ export default function Orders() {
                           <div key={index} className="order-item flex justify-between items-center py-3 border-b border-gray-100 last:border-0">
                             <div className="flex items-center space-x-3">
                               {item.product_image && (
-                                <image
+                                <Image
                                   src={item.product_image} 
                                   alt={item.product_name}
+                                  width={48}
+                                  height={48}
                                   className="w-12 h-12 object-cover rounded"
                                 />
                               )}
@@ -290,10 +293,26 @@ export default function Orders() {
                       </div>
                     </div>
                     
-                    <div>
-                      <label className="font-medium">Customer:</label>
-                      <p>{selectedOrder.customer_name} ({selectedOrder.customer_email})</p>
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        <div className='flex flex-col'>
+                            <label className="font-medium">Customer:</label>
+                            <p>{selectedOrder.customer_name} ({selectedOrder.customer_email})</p>
+                            </div>
+
+                            
+                            {selectedOrder.shipping_address && (
+                            <div>
+                                <h4 className="font-medium mb-2">Shipping Address:</h4>
+                                <p className="text-sm">
+                                {selectedOrder.shipping_address.street}<br/>
+                                {selectedOrder.shipping_address.city}, {selectedOrder.shipping_address.state}<br/>
+                                {selectedOrder.shipping_address.country} {selectedOrder.shipping_address.zip_code}
+                                </p>
+                            </div>
+                            )}
                     </div>
+
+                    <br />
 
                     <div className='border-t pt-3'>
                       <h4 className="font-medium mb-2">Items Ordered:</h4>
@@ -332,17 +351,6 @@ export default function Orders() {
                         </div>
                       </div>
                     </div>
-
-                    {selectedOrder.shipping_address && (
-                      <div>
-                        <h4 className="font-medium mb-2">Shipping Address:</h4>
-                        <p className="text-sm">
-                          {selectedOrder.shipping_address.street}<br/>
-                          {selectedOrder.shipping_address.city}, {selectedOrder.shipping_address.state}<br/>
-                          {selectedOrder.shipping_address.country} {selectedOrder.shipping_address.zip_code}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </div>
                 

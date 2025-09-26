@@ -5,6 +5,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import Head from 'next/head';
 import toast from 'react-hot-toast';
 import { useCallback } from 'react';
+import Image from 'next/image';
 
 export default function Products() {
   const [products, setProducts] = useState([]);
@@ -122,8 +123,8 @@ export default function Products() {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Our Products</h1>
-            <p className="text-lg text-gray-600">Discover our amazing collection</p>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">Our Delicious Desserts</h1>
+            <p className="text-lg text-gray-600">Discover a variaty of taste</p>
           </div>
 
           <div className="flex flex-col gap-4 mb-8">
