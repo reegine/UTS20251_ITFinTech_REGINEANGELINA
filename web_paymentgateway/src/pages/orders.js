@@ -26,6 +26,14 @@ export default function Orders() {
     }
   }, [router.query]);
 
+  const isPayable = (order) => {
+    if (order.status !== 'pending') return false;
+    if (order.expiry_date) {
+        return new Date(order.expiry_date) > new Date();
+    }
+    return true; // assume valid if no expiry
+  };
+
   const loadOrders = async (email) => {
     if (!email) {
       setOrders([]);
@@ -245,13 +253,44 @@ export default function Orders() {
                           Total: {order.currency} {formatPrice(order.total_amount)}
                         </span>
                         <div className="order-actions flex space-x-2">
-                          <button 
+                        <button 
                             onClick={() => setSelectedOrder(order)}
                             className="btn-secondary btn-small"
-                          >
+                        >
                             View Details
-                          </button>
-                    
+                        </button>
+                        
+                        {isPayable(order) && (
+                            <button
+                            onClick={async () => {
+                                try {
+                                // Reuse existing payment URL if available
+                                if (order.payment_url) {
+                                    window.location.href = order.payment_url;
+                                } else {
+                                    // Or create a new payment session
+                                    const res = await fetch('/api/payments/create', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ order_id: order.order_id })
+                                    });
+                                    const data = await res.json();
+                                    if (data.success) {
+                                    window.location.href = data.data.payment_url;
+                                    } else {
+                                    alert('Failed to resume payment: ' + data.error);
+                                    }
+                                }
+                                } catch (err) {
+                                console.error('Resume payment error:', err);
+                                alert('Could not resume payment. Please try again.');
+                                }
+                            }}
+                            className="btn-primary btn-small"
+                            >
+                            Continue Payment
+                            </button>
+                        )}
                         </div>
                       </div>
                     </div>
@@ -286,6 +325,10 @@ export default function Orders() {
                         <p className={getStatusColor(selectedOrder.status)}>
                           {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
                         </p>
+                      </div>
+                      <div>
+                        <label className="font-medium">Payment Date:</label>
+                        <p>{selectedOrder.status !== 'pending' ? formatDate(selectedOrder.updatedAt) : 'Not Paid'}</p>
                       </div>
                     </div>
                     

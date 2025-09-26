@@ -129,13 +129,10 @@ export default function Products() {
       </Head>
 
       <div className="min-h-screen bg-gray-50">
-        {/* Banner Section */}
         <div className="relative bg-gradient-to-r from-pink-500 to-purple-600 py-16 md:py-24"
          style={{ backgroundImage: `url(${heroBg.src})` }} >
-          {/* Optional: Add a background pattern or image */}
           <div className="absolute inset-0 bg-black/10"></div>
           
-          {/* Banner Content */}
           <div className="relative max-w-7xl mx-auto px-4 text-center">
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">
               Our Delicious Desserts
@@ -144,7 +141,6 @@ export default function Products() {
               Discover a variety of taste sensations
             </p>
             
-            {/* Decorative elements */}
             <div className="mt-6 flex justify-center space-x-2">
               {['🍰', '🍪', '🧁', '🍩', '🎂'].map((emoji, index) => (
                 <span 
@@ -159,10 +155,8 @@ export default function Products() {
           </div>
         </div>
 
-        {/* Products Section */}
         <div className="py-8">
           <div className="max-w-7xl mx-auto px-4">
-            {/* Search and Filters Section */}
             <div className="flex flex-col gap-4 mb-8">
               <form onSubmit={handleSearchSubmit} className="relative w-full max-w-2xl mx-auto">
                 <input
@@ -181,7 +175,6 @@ export default function Products() {
                 </button>
               </form>
 
-              {/* Category Tabs - Horizontal on desktop, vertical on mobile */}
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="font-medium text-gray-900">Browse Categories</h3>
@@ -195,7 +188,6 @@ export default function Products() {
                   )}
                 </div>
                 
-                {/* Desktop: Horizontal layout */}
                 <div className="hidden md:block">
                   <div className="flex flex-wrap gap-2">
                     {categories.map(category => {
@@ -219,7 +211,6 @@ export default function Products() {
                   </div>
                 </div>
                 
-                {/* Mobile: Vertical layout */}
                 <div className="md:hidden">
                   <div className="grid grid-cols-2 gap-2">
                     {categories.map(category => {
@@ -243,7 +234,6 @@ export default function Products() {
                   </div>
                 </div>
                 
-                {/* Active category indicator */}
                 {filters.category !== 'all' && (
                   <div className="mt-3 pt-3 border-t border-gray-200">
                     <p className="text-sm text-gray-600">
@@ -269,8 +259,6 @@ export default function Products() {
               <>
                 <div className="mb-6 text-center">
                   <span className="text-gray-600">
-                    {/* Showing {filteredProducts.length} of {pagination.total} products */}
-                    {/* {filters.search && ` for "${filters.search}"`} */}
                     {filters.category !== 'all' && ` in ${filters.category.charAt(0).toUpperCase() + filters.category.slice(1)}`}
                   </span>
                 </div>
