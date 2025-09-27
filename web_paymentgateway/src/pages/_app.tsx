@@ -1,10 +1,14 @@
-import { AppProps } from 'next/app';
-import { CartProvider } from '../contexts/CartContext';
-import Header from '../components/Header';
-import { Toaster } from 'react-hot-toast';
-import '../styles/globals.css';
+import { AppProps } from "next/app";
+import { CartProvider } from "../contexts/CartContext";
+import Header from "../components/Header";
+import { Toaster } from "react-hot-toast";
+import "../styles/globals.css";
+import { useState } from "react";
+import VideoModal from "../components/Video";
 
 export default function MyApp({ Component, pageProps }: AppProps) {
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
+
   return (
     <CartProvider>
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-amber-50">
@@ -20,12 +24,20 @@ export default function MyApp({ Component, pageProps }: AppProps) {
               <a
                 href="https://www.instagram.com/im_reegine/?__d=11"
                 className="hover:text-pink-500 transition"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 Instagram
               </a>
-              <a href="#" className="hover:text-pink-500 transition">
+
+              {/* Video Mockup as Button */}
+              <button
+                onClick={() => setIsVideoOpen(true)}
+                className="hover:text-pink-500 transition"
+              >
                 Video Mockup
-              </a>
+              </button>
+
               <a
                 href="mailto:regineangelina9@gmail.com?subject=Dessert%20Feedback&body=Hii%20Regine%2C%20I'm%20writing%20this%20to..."
                 className="hover:text-pink-500 transition"
@@ -35,7 +47,13 @@ export default function MyApp({ Component, pageProps }: AppProps) {
             </div>
           </div>
         </footer>
-      </div>      
+
+        <VideoModal
+          isOpen={isVideoOpen}
+          onClose={() => setIsVideoOpen(false)}
+          videoSrc="/overview.mp4"
+        />
+      </div>
     </CartProvider>
   );
 }
