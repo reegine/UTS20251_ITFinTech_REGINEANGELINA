@@ -1,7 +1,7 @@
 import connectDB from '../../../lib/mongodb';
 import Order from '../../../models/Order';
 import Payment from '../../../models/Payment';
-import { sendOrderNotification } from '../../../../lib/whatsapp';
+import { sendOrderNotification } from '../../../lib/whatsapp';
 
 
 export default async function handler(req, res) {
@@ -100,7 +100,7 @@ export default async function handler(req, res) {
     if (orderStatus === 'paid') {
       await sendOrderNotification(order, 'payment');
     }
-    
+
     res.status(200).json({ 
       received: true,
       message: 'Webhook processed successfully',

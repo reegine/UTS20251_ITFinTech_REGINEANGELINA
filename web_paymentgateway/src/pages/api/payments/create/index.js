@@ -1,6 +1,6 @@
 import connectDB from '../../../../lib/mongodb';
 import Order from '../../../../models/Order';
-import Payment from '../../../models/Payment';
+import Payment from '../../../../models/Payment';
 // Send WhatsApp notification for checkout
 import { sendOrderNotification } from '../../../../lib/whatsapp';
 
