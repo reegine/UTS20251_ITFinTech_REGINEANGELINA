@@ -1,6 +1,6 @@
-import connectDB from '../../../../lib/mongodb';
-import MFACode from '../../../../models/MFACode';
-import User from '../../../../models/User';
+import connectDB from '../../../lib/mongodb';
+import MFACode from '../../../models/MFACode';
+import User from '../../../models/User';
 import jwt from 'jsonwebtoken';
 
 export default async function handler(req, res) {
