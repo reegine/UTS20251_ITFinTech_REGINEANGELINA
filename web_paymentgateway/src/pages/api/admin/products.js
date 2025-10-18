@@ -1,6 +1,6 @@
-import connectDB from '../../../../lib/mongodb';
-import Product from '../../../../models/Product';
-import { verifyToken } from '../../../../lib/auth';
+import connectDB from '../../../lib/mongodb';
+import Product from '../../../models/Product';
+import { verifyToken } from '../../../lib/auth';
 
 export default async function handler(req, res) {
   try {
