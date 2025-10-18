@@ -1,5 +1,7 @@
+// src/pages/_app.tsx
 import { AppProps } from "next/app";
 import { CartProvider } from "../contexts/CartContext";
+import { AuthProvider } from "../contexts/AuthContext"; // This should work now
 import Header from "../components/Header";
 import { Toaster } from "react-hot-toast";
 import "../styles/globals.css";
@@ -10,50 +12,49 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
   return (
-    <CartProvider>
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-amber-50">
-        <Header />
-        <main className="mx-auto">
-          <Component {...pageProps} />
-        </main>
-        <Toaster />
-        <footer className="bg-white/70 backdrop-blur-sm border-t border-pink-100 mt-10">
-          <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col sm:flex-row justify-between items-center text-gray-600 text-sm">
-            <p>© {new Date().getFullYear()} Gine&apos;s Dessert. All rights reserved.</p>
-            <div className="flex space-x-4 mt-3 sm:mt-0">
-              <a
-                href="https://www.instagram.com/im_reegine/?__d=11"
-                className="hover:text-pink-500 transition"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Instagram
-              </a>
-
-              {/* Video Mockup as Button */}
-              <button
-                onClick={() => setIsVideoOpen(true)}
-                className="hover:text-pink-500 transition"
-              >
-                Video Mockup
-              </button>
-
-              <a
-                href="mailto:regineangelina9@gmail.com?subject=Dessert%20Feedback&body=Hii%20Regine%2C%20I'm%20writing%20this%20to..."
-                className="hover:text-pink-500 transition"
-              >
-                Contact
-              </a>
+    <AuthProvider>
+      <CartProvider>
+        <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-amber-50">
+          <Header />
+          <main className="mx-auto">
+            <Component {...pageProps} />
+          </main>
+          <Toaster />
+          <footer className="bg-white/70 backdrop-blur-sm border-t border-pink-100 mt-10">
+            <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col sm:flex-row justify-between items-center text-gray-600 text-sm">
+              <p>© {new Date().getFullYear()} Gine&apos;s Dessert. All rights reserved.</p>
+              <div className="flex space-x-4 mt-3 sm:mt-0">
+                <a
+                  href="https://www.instagram.com/im_reegine/?__d=11"
+                  className="hover:text-pink-500 transition"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Instagram
+                </a>
+                <button
+                  onClick={() => setIsVideoOpen(true)}
+                  className="hover:text-pink-500 transition"
+                >
+                  Video Mockup
+                </button>
+                <a
+                  href="mailto:regineangelina9@gmail.com?subject=Dessert%20Feedback&body=Hii%20Regine%2C%20I'm%20writing%20this%20to..."
+                  className="hover:text-pink-500 transition"
+                >
+                  Contact
+                </a>
+              </div>
             </div>
-          </div>
-        </footer>
+          </footer>
 
-        <VideoModal
-          isOpen={isVideoOpen}
-          onClose={() => setIsVideoOpen(false)}
-          videoSrc="/overview.mp4"
-        />
-      </div>
-    </CartProvider>
+          <VideoModal
+            isOpen={isVideoOpen}
+            onClose={() => setIsVideoOpen(false)}
+            videoSrc="/overview.mp4"
+          />
+        </div>
+      </CartProvider>
+    </AuthProvider>
   );
 }

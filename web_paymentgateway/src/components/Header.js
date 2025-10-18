@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext'; // Added
 import ShoppingCart from './ShoppingCart';
 import Image from 'next/image';
 import Logo from '../../dummy_data/logo5.png'
@@ -10,6 +11,7 @@ export default function Header() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { getTotalItems } = useCart();
+  const { user, logout } = useAuth(); // Added
   const router = useRouter();
 
   const isActive = (path) => router.pathname === path;
@@ -19,12 +21,23 @@ export default function Header() {
     { path: "/orders", label: "My Orders" }
   ];
 
+  // Add admin link if user is admin
+  if (user?.role === 'admin') {
+    navigationItems.push({ path: "/admin", label: "Admin" });
+  }
+
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    closeMobileMenu();
+    router.push('/');
   };
 
   return (
@@ -64,6 +77,36 @@ export default function Header() {
                   {item.label}
                 </Link>
               ))}
+              
+              {/* Auth Section - Desktop */}
+              <div className="flex items-center space-x-4">
+                {user ? (
+                  <>
+                    <span className="text-sm text-gray-700">Hello, {user.name}</span>
+                    <button
+                      onClick={handleLogout}
+                      className="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition text-sm"
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/auth/login"
+                      className="text-gray-700 hover:text-pink-600 transition text-sm font-medium"
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      href="/auth/register"
+                      className="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition text-sm font-medium"
+                    >
+                      Register
+                    </Link>
+                  </>
+                )}
+              </div>
               
               <button
                 onClick={() => setIsCartOpen(true)}
@@ -153,7 +196,7 @@ export default function Header() {
         </div>
 
         <div className={`md:hidden transition-all duration-300 ease-in-out ${
-          isMobileMenuOpen ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0'
+          isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
         } overflow-hidden bg-white border-t border-gray-200`}>
           <div className="px-4 py-4 space-y-4">
             {navigationItems.map((item) => (
@@ -171,6 +214,40 @@ export default function Header() {
               </Link>
             ))}
             
+            {/* Auth Section - Mobile */}
+            <div className="pt-4 border-t border-gray-200">
+              {user ? (
+                <>
+                  <div className="px-4 py-2 text-sm text-gray-600">
+                    Hello, {user.name}
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left py-3 px-4 rounded-lg text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-pink-600 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/login"
+                    onClick={closeMobileMenu}
+                    className="block py-3 px-4 rounded-lg text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-pink-600 transition-colors"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/auth/register"
+                    onClick={closeMobileMenu}
+                    className="block py-3 px-4 rounded-lg text-base font-medium bg-pink-600 text-white hover:bg-pink-700 transition-colors mt-2"
+                  >
+                    Register
+                  </Link>
+                </>
+              )}
+            </div>
+
             <div className="pt-4 border-t border-gray-200">
               <Link
                 href="/"

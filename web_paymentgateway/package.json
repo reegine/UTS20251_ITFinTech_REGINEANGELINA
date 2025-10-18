@@ -10,14 +10,20 @@
     "vercel-build": "next build"
   },
   "dependencies": {
-    "next": "15.5.4",
     "bcryptjs": "^2.4.3",
+    "chart.js": "^4.5.1",
     "crypto": "^1.0.1",
+    "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.3.0",
     "mongoose": "^8.0.3",
+    "next": "15.5.4",
+    "next-auth": "^4.24.11",
+    "nodemailer": "^6.10.1",
     "react": "^19.0.0",
+    "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.6.0",
+    "twilio": "^5.10.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
