@@ -29,6 +29,9 @@ export default function Checkout() {
   const [error, setError] = useState(null);
   const [order, setOrder] = useState(null);
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [paymentNotificationSent, setPaymentNotificationSent] = useState(false);
+  const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
+
 
   const orderTotals = useMemo(() => {
     if (items.length === 0) return {
@@ -54,12 +57,13 @@ export default function Checkout() {
     };
   }, [items]);
 
+
   useEffect(() => {
     if (!paymentUrl || !order) return;
 
     let isMounted = true;
     let pollCount = 0;
-    const maxPolls = 60; // 5 minutes at 5-second intervals
+    const maxPolls = 60;
 
     const pollPaymentStatus = async () => {
       if (!isMounted || pollCount >= maxPolls) {
@@ -79,14 +83,14 @@ export default function Checkout() {
         
         if (!response.ok) {
           console.warn(`Polling failed with status: ${response.status}`);
-          return; // Continue polling on errors
+          return;
         }
         
         const result = await response.json();
         
         if (!result.success) {
           console.warn('Payment status check failed:', result.error);
-          return; // Continue polling
+          return;
         }
         
         const paymentStatus = result.data.status;
@@ -97,50 +101,67 @@ export default function Checkout() {
           setPaymentStatus(paymentStatus);
           
           if (paymentStatus === 'paid' || paymentStatus === 'success') {
-            console.log('✅ Payment successful, clearing cart and redirecting...');
-            clearCart();
-            localStorage.removeItem('cart');
+            console.log('✅ Payment successful, sending notification...');
+            setIsPaymentSuccess(true);
             
+            // Save customer email for orders page
+            localStorage.setItem('customerEmail', customerInfo.email);
+            
+            // Send WhatsApp notification for successful payment
+            if (!paymentNotificationSent) {
+              setPaymentNotificationSent(true);
+              sendPaymentSuccessNotification(order.order_id);
+            }
+            
+            // Show success message for 5 seconds before redirecting
             setTimeout(() => {
               if (isMounted) {
+                console.log('🔄 Now clearing cart and redirecting...');
+                clearCart();
+                localStorage.removeItem('cart');
                 router.push('/orders?success=true');
               }
-            }, 3000);
+            }, 5000); // Changed from 3000 to 5000 for longer display
+          } else if (paymentStatus === 'failed' || paymentStatus === 'expired') {
+            // For failed payments, just update status but don't clear cart
+            console.log('❌ Payment failed, keeping cart items');
           }
         }
       } catch (error) {
         console.error('❌ Polling error:', error);
-        // Continue polling on network errors
       }
     };
 
     const pollInterval = setInterval(pollPaymentStatus, 5000);
 
-    // Cleanup function
     return () => {
       console.log('🧹 Cleaning up payment polling');
       isMounted = false;
       clearInterval(pollInterval);
     };
-  }, [paymentUrl, order, clearCart, router]);
+  }, [paymentUrl, order, paymentNotificationSent, customerInfo.email, clearCart, router]);
 
-  useEffect(() => {
-    if (paymentStatus === 'paid' || paymentStatus === 'success') {
-      console.log('✅ Payment successful, redirecting to orders page...');
-      clearCart();
-      localStorage.removeItem('cart');
-      setOrder(null);
-      setPaymentUrl(null);
-      setPaymentStatus(null);
+  const sendPaymentSuccessNotification = async (orderId) => {
+    try {
+      console.log('📤 Sending payment success notification for order:', orderId);
+      
+      const response = await fetch('/api/notifications/payment-success', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId }),
+      });
 
-      const redirectTimer = setTimeout(() => {
-        router.push('/orders?success=true');
-      }, 3000);
-
-      return () => clearTimeout(redirectTimer);
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✅ Payment success notification sent to admin');
+      } else {
+        console.warn('⚠️ Failed to send payment notification:', result.error);
+      }
+    } catch (error) {
+      console.error('❌ Error sending payment notification:', error);
     }
-  }, [paymentStatus, clearCart, router]);
-
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -178,10 +199,11 @@ export default function Checkout() {
       console.log('=== 🛒 STARTING CHECKOUT ===');
       console.log('🆕 New checkout session started');
       
-      // Reset any previous state
+      // Reset state
       setPaymentUrl(null);
       setPaymentStatus(null);
       setOrder(null);
+      setPaymentNotificationSent(false);
 
       // Create order
       console.log('1. Creating order...');
@@ -235,9 +257,6 @@ export default function Checkout() {
 
       // Create payment
       console.log('2. Creating payment...');
-      console.log('Calling: POST /api/payments/create');
-      console.log('With order_id:', orderResult.data.order_id);
-
       const paymentResponse = await fetch('/api/payments/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -246,20 +265,9 @@ export default function Checkout() {
         }),
       });
 
-      console.log('=== PAYMENT RESPONSE ANALYSIS ===');
-      console.log('Status:', paymentResponse.status);
-      console.log('Status Text:', paymentResponse.statusText);
-      console.log('OK:', paymentResponse.ok);
+      console.log('Payment response status:', paymentResponse.status);
 
-      // Read the response body
-      let responseBody;
-      try {
-        responseBody = await paymentResponse.text();
-        console.log('Response body:', responseBody.substring(0, 500));
-      } catch (readError) {
-        console.error('Could not read response body:', readError);
-        responseBody = 'Could not read response';
-      }
+      const responseBody = await paymentResponse.text();
 
       if (!paymentResponse.ok) {
         console.error('❌ Payment creation failed');
@@ -272,16 +280,14 @@ export default function Checkout() {
           throw new Error('Payment endpoint not found.');
         }
         
-        throw new Error(`Payment failed: ${paymentResponse.status} ${paymentResponse.statusText}`);
+        throw new Error(`Payment failed: ${paymentResponse.status}`);
       }
 
-      // Try to parse response
       let paymentResult;
       try {
         paymentResult = JSON.parse(responseBody);
       } catch (parseError) {
-        console.error('Failed to parse payment response as JSON:', parseError);
-        console.error('Raw response:', responseBody);
+        console.error('Failed to parse payment response:', parseError);
         throw new Error('Payment service returned invalid response');
       }
 
@@ -323,7 +329,7 @@ export default function Checkout() {
     setError('Failed to load payment gateway. Please try again.');
   };
 
-  if (items.length === 0 && !paymentUrl) {
+  if (items.length === 0 && !paymentUrl && paymentStatus !== 'paid') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

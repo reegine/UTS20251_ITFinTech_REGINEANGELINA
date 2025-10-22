@@ -16,15 +16,24 @@ export default function Orders() {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
     
+    // Check for success redirect from payment
     if (success === 'true') {
       const savedEmail = localStorage.getItem('customerEmail');
       if (savedEmail) {
         setCustomerEmail(savedEmail);
         loadOrders(savedEmail);
-        router.replace('/orders', undefined, { shallow: true });
+        // Clean up the URL without page reload
+        window.history.replaceState({}, '', '/orders');
       }
     }
-  }, [router.query]);
+    
+    // Also load orders if we have a saved email (page refresh case)
+    const savedEmail = localStorage.getItem('customerEmail');
+    if (savedEmail && !customerEmail) {
+      setCustomerEmail(savedEmail);
+      loadOrders(savedEmail);
+    }
+  }, []); 
 
   const isPayable = (order) => {
     if (order.status !== 'pending') return false;
@@ -45,13 +54,24 @@ export default function Orders() {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/orders?email=${encodeURIComponent(email)}`);
+      // Use the correct endpoint
+      const apiUrl = `/api/orders/email?email=${encodeURIComponent(email)}`;
+      console.log('🔄 Calling API:', apiUrl);
+      
+      const response = await fetch(apiUrl);
+      
+      console.log('📊 Response status:', response.status);
+      console.log('📊 Response ok:', response.ok);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Get more detailed error info
+        const errorText = await response.text();
+        console.error('❌ Response error:', errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
+      console.log('✅ API response data:', data);
 
       if (data.success) {
         setOrders(data.data || []);
@@ -61,8 +81,8 @@ export default function Orders() {
         setOrders([]);
       }
     } catch (err) {
-      console.error('Error loading orders:', err);
-      setError('Failed to load orders. Please try again.');
+      console.error('❌ Error loading orders:', err);
+      setError('Failed to load orders. Please check if the orders API endpoint exists.');
       setOrders([]);
     } finally {
       setLoading(false);
@@ -71,7 +91,11 @@ export default function Orders() {
 
   const handleEmailSubmit = (e) => {
     e.preventDefault();
-    loadOrders(customerEmail.trim());
+    const email = customerEmail.trim();
+    if (email) {
+      localStorage.setItem('customerEmail', email);
+      loadOrders(email);
+    }
   };
 
   const handleClearSearch = () => {
