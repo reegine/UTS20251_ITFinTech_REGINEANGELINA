@@ -21,7 +21,9 @@ const nextConfig: NextConfig = {
     'dollopofdough.com',
     'www.tasteofhome.com',
     'letsenhance.io',
-    '*'
+    '*',
+    'res.cloudinary.com',
+    
   ],
 },
 };
