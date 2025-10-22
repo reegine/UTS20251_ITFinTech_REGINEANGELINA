@@ -1,4 +1,5 @@
 import connectDB from '../../../lib/mongodb';
+import Order from '../../../models/Order'; // 👈 Import your Order model
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -20,23 +21,13 @@ export default async function handler(req, res) {
 
     console.log('🔍 Searching orders for email:', email);
 
-    const db = await connectDB();
-    
-    console.log('🔍 Database connection state:', db ? 'Connected' : 'Not connected');
-    
-    if (!db) {
-      console.error('❌ Database connection failed');
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Database connection failed' 
-      });
-    }
+    await connectDB(); // Just connect — you don't need the return value for Mongoose
 
-    // Find orders by customer_email
-    const orders = await db.collection('orders')
-      .find({ customer_email: email })
+    // ✅ Use Mongoose model to find orders
+    const orders = await Order.find({ customer_email: email })
       .sort({ createdAt: -1 })
-      .toArray();
+      .lean() // Optional: returns plain JS objects, faster
+      .exec();
 
     console.log(`✅ Found ${orders.length} orders for ${email}`);
 
