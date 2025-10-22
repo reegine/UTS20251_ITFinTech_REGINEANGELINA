@@ -1,4 +1,3 @@
-// src/pages/admin/users.tsx
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
 import { useAuth } from '../../contexts/AuthContext';

@@ -1,4 +1,3 @@
-// src/pages/api/admin/products/[id].js
 import connectDB from '../../../../lib/mongodb';
 import Product from '../../../../models/Product';
 import adminAuth from '../../../../middleware/adminAuth';
@@ -36,7 +35,6 @@ async function handler(req, res) {
         console.log('📝 UPDATE product:', id, 'with data:', req.body);
         const { name, description, price, image_url, stock, category, is_active } = req.body;
 
-        // Validate required fields
         if (!name || !description || !price || !image_url || stock === undefined) {
           return res.status(400).json({
             success: false,
@@ -76,7 +74,6 @@ async function handler(req, res) {
       case 'DELETE':
         console.log('🗑️ DELETE product:', id);
         
-        // ACTUALLY DELETE THE PRODUCT FROM DATABASE
         const deletedProduct = await Product.findByIdAndDelete(id);
 
         if (!deletedProduct) {
@@ -110,5 +107,4 @@ async function handler(req, res) {
   }
 }
 
-// Apply admin auth middleware
 export default adminAuth(handler);

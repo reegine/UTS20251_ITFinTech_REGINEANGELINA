@@ -1,4 +1,3 @@
-// src/hooks/useNotification.ts
 import { useState, useCallback } from 'react';
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info';

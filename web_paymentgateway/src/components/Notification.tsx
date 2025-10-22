@@ -1,4 +1,3 @@
-// src/components/Notification.tsx
 import { useEffect } from 'react';
 
 export interface NotificationProps {
@@ -6,7 +5,7 @@ export interface NotificationProps {
   message: string;
   isVisible: boolean;
   onClose: () => void;
-  duration?: number; // Auto-close duration in milliseconds
+  duration?: number;
 }
 
 export default function Notification({ 

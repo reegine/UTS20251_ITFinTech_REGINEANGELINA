@@ -1,4 +1,3 @@
-// src/pages/api/payments/create/test.js
 export default async function handler(req, res) {
   console.log('✅ PAYMENT TEST ENDPOINT HIT:', req.method, req.url);
   

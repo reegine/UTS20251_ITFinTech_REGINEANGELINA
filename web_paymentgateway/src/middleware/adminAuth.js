@@ -1,4 +1,3 @@
-// src/middleware/adminAuth.js
 import jwt from 'jsonwebtoken';
 
 export default function adminAuth(handler) {
@@ -16,7 +15,6 @@ export default function adminAuth(handler) {
       const token = authHeader.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
       
-      // Check if user is admin
       if (decoded.role !== 'admin') {
         return res.status(403).json({
           success: false,
@@ -24,7 +22,6 @@ export default function adminAuth(handler) {
         });
       }
 
-      // Add user to request object
       req.user = decoded;
       
       return handler(req, res);

@@ -1,4 +1,3 @@
-// src/pages/admin/orders.tsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
@@ -20,17 +19,14 @@ interface Order {
   }>;
 }
 
-// Improved fetchWithRetry with better error handling
 const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): Promise<Response> => {
   try {
     const response = await fetch(url, options);
     
-    // Don't retry on 4xx errors (client errors) - these won't succeed with retries
     if (response.status >= 400 && response.status < 500) {
       return response;
     }
     
-    // Only retry on 5xx errors (server errors) or network errors
     if (!response.ok && response.status >= 500 && retries > 0) {
       console.log(`Retrying request, ${retries} attempts left`);
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -62,8 +58,7 @@ export default function AdminOrders() {
   const [limit] = useState(12);
   const [pagination, setPagination] = useState<any>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [isFetching, setIsFetching] = useState(false); // Prevent concurrent requests
-  // notification state
+  const [isFetching, setIsFetching] = useState(false);
   const [notif, setNotif] = useState({ isVisible: false, type: 'info' as any, message: '' });
 
   useEffect(() => {
@@ -72,22 +67,18 @@ export default function AdminOrders() {
       return;
     }
     
-    // Only fetch if we have a token and not currently fetching
     if (token && !isFetching) {
       fetchOrders();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, token, statusFilter, startDate, endDate, searchProduct, page]);
 
   const fetchOrders = async () => {
-    // Prevent multiple simultaneous requests
     if (isFetching) return;
     
     try {
       setIsFetching(true);
       setLoading(true);
       
-      // Check if token exists
       if (!token) {
         throw new Error('No authentication token found');
       }
@@ -103,7 +94,6 @@ export default function AdminOrders() {
       
       console.log('Fetching orders from:', url);
       
-      // Use fetchWithRetry here
       const response = await fetchWithRetry(url, {
         headers: { 
           Authorization: `Bearer ${token}`,
@@ -111,7 +101,6 @@ export default function AdminOrders() {
         }
       });
       
-      // Handle different HTTP status codes appropriately
       if (!response.ok) {
         let errorMessage = `Failed to fetch orders: ${response.status} ${response.statusText}`;
         
@@ -119,22 +108,18 @@ export default function AdminOrders() {
           const errorData = await response.json();
           errorMessage = errorData.message || errorMessage;
         } catch (parseError) {
-          // If response is not JSON, try to get text
           try {
             const errorText = await response.text();
             if (errorText) {
               errorMessage = `${errorMessage} - ${errorText}`;
             }
           } catch (textError) {
-            // Ignore if we can't get text either
           }
         }
         
-        // Special handling for authentication errors
         if (response.status === 401 || response.status === 403) {
           showNotif('error', 'Session expired. Please log in again.');
-          // Optionally redirect to login
-          // router.push('/login');
+          router.push('/login');
           return;
         }
         
@@ -144,7 +129,6 @@ export default function AdminOrders() {
       const data = await response.json();
       let fetched: Order[] = data.data || [];
       
-      // Client-side filtering for product search
       if (searchProduct) {
         const q = searchProduct.toLowerCase();
         fetched = fetched.filter(o => 
@@ -158,13 +142,11 @@ export default function AdminOrders() {
     } catch (error: any) {
       console.error('Error fetching orders:', error);
       
-      // Don't show error notification for cancelled requests or if component unmounted
       if (error.name !== 'AbortError') {
         const errorMessage = error.message || 'Unknown error occurred';
         showNotif('error', 'Gagal mengambil daftar pesanan: ' + errorMessage);
       }
       
-      // Set empty orders on error to prevent UI issues
       setOrders([]);
       setPagination(null);
     } finally {
@@ -185,21 +167,18 @@ export default function AdminOrders() {
     });
     
     if (!response.ok) {
-      // Try to parse error as JSON first
       let errorMessage = `Failed to update order: ${response.status} ${response.statusText}`;
       
       try {
         const errorData = await response.json();
         errorMessage = errorData.error || errorMessage;
       } catch {
-        // If not JSON, get text
         try {
           const errorText = await response.text();
           if (errorText && !errorText.includes('<!DOCTYPE html>')) {
             errorMessage = `${errorMessage} - ${errorText}`;
           }
         } catch {
-          // Ignore if we can't get text
         }
       }
       
@@ -209,12 +188,10 @@ export default function AdminOrders() {
     const data = await response.json();
     
     showNotif('success', data.message || `Status pesanan diubah menjadi ${newStatus}`);
-    // Refresh current page
     fetchOrders();
   } catch (error: any) {
     console.error('Error updating order:', error);
     
-    // Check if it's a 404 error specifically
     if (error.message.includes('404') || error.message.includes('Not Found')) {
       showNotif('error', 'API endpoint not found. Please check if the server is running correctly.');
     } else {

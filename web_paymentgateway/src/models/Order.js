@@ -1,4 +1,3 @@
-// src/models/Order.js
 import mongoose from 'mongoose';
 
 const orderItemSchema = new mongoose.Schema({
@@ -83,15 +82,8 @@ const orderSchema = new mongoose.Schema({
   xendit_response: mongoose.Schema.Types.Mixed,
   notes: String
 }, {
-  timestamps: true // This automatically creates createdAt and updatedAt fields
+  timestamps: true
 });
 
-// Remove the virtual createdAt field - it conflicts with the automatic timestamp
-// orderSchema.virtual('createdAt').get(function() {
-//   return this._id.getTimestamp();
-// });
-
-// orderSchema.set('toJSON', { virtuals: true });
-// orderSchema.set('toObject', { virtuals: true });
 
 export default mongoose.models.Order || mongoose.model('Order', orderSchema);

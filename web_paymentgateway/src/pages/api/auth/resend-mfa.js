@@ -1,4 +1,3 @@
-// src/pages/api/auth/resend-mfa.js
 import connectDB from '../../../lib/mongodb';
 import MFACode from '../../../models/MFACode';
 import User from '../../../models/User';
@@ -19,13 +18,11 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Delete any existing unused codes for this user
     await MFACode.deleteMany({
       user: userId,
       used: false
     });
 
-    // Generate new code
     const mfaCode = Math.random().toString().slice(2, 8);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
@@ -36,7 +33,6 @@ export default async function handler(req, res) {
       expiresAt
     });
 
-    // Send WhatsApp message
     const whatsappResult = await sendMFACode(user.phone, mfaCode);
     
     if (!whatsappResult.success) {

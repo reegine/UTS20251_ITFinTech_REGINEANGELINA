@@ -1,4 +1,3 @@
-// src/pages/api/auth/login.js
 import connectDB from '../../../lib/mongodb';
 import User from '../../../models/User';
 import bcrypt from 'bcryptjs';
@@ -24,7 +23,6 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Regular login - generate token directly (MFA is optional via separate flow)
     const token = jwt.sign(
       { userId: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET || 'your-secret-key',

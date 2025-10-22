@@ -2,17 +2,20 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useCart } from '../contexts/CartContext';
-import { useAuth } from '../contexts/AuthContext'; // Added
+import { useAuth } from '../contexts/AuthContext';
 import ShoppingCart from './ShoppingCart';
 import Image from 'next/image';
-import Logo from '../../dummy_data/logo5.png'
+import Logo from '../../dummy_data/logo5.png';
+import Notification from '../components/Notification';
+import { useNotification } from '../hook/useNotification';
 
 export default function Header() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { getTotalItems } = useCart();
-  const { user, logout } = useAuth(); // Added
+  const { user, logout } = useAuth();
   const router = useRouter();
+  const { notification, showNotification, hideNotification } = useNotification();
 
   const isActive = (path) => router.pathname === path;
 
@@ -21,7 +24,6 @@ export default function Header() {
     { path: "/orders", label: "My Orders" }
   ];
 
-  // Add admin link if user is admin
   if (user?.role === 'admin') {
     navigationItems.push({ path: "/admin", label: "Admin" });
   }
@@ -34,10 +36,29 @@ export default function Header() {
     setIsMobileMenuOpen(false);
   };
 
-  const handleLogout = () => {
-    logout();
-    closeMobileMenu();
-    router.push('/');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      showNotification('success', 'Logged out successfully!');
+      closeMobileMenu();
+      
+      // Wait a moment to show the notification before redirecting
+      setTimeout(() => {
+        router.push('/');
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Logout error:', error);
+      showNotification('error', 'Failed to logout. Please try again.');
+    }
+  };
+
+  const handleCartClick = () => {
+    setIsCartOpen(true);
+    // Show notification if cart is empty
+    if (getTotalItems() === 0) {
+      showNotification('info', 'Your cart is empty. Add some products!');
+    }
   };
 
   return (
@@ -78,7 +99,6 @@ export default function Header() {
                 </Link>
               ))}
               
-              {/* Auth Section - Desktop */}
               <div className="flex items-center space-x-4">
                 {user ? (
                   <>
@@ -109,7 +129,7 @@ export default function Header() {
               </div>
               
               <button
-                onClick={() => setIsCartOpen(true)}
+                onClick={handleCartClick}
                 className="relative p-3 rounded-full bg-pink-50 hover:bg-pink-100 transition"
               >
                 <svg
@@ -138,7 +158,7 @@ export default function Header() {
 
             <div className="flex md:hidden items-center space-x-4">
               <button
-                onClick={() => setIsCartOpen(true)}
+                onClick={handleCartClick}
                 className="relative p-2 rounded-full bg-pink-50 hover:bg-pink-100 transition"
               >
                 <svg
@@ -214,7 +234,6 @@ export default function Header() {
               </Link>
             ))}
             
-            {/* Auth Section - Mobile */}
             <div className="pt-4 border-t border-gray-200">
               {user ? (
                 <>
@@ -273,6 +292,15 @@ export default function Header() {
       )}
 
       <ShoppingCart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+
+      {/* Notification Component */}
+      <Notification
+        type={notification.type}
+        message={notification.message}
+        isVisible={notification.isVisible}
+        onClose={hideNotification}
+        duration={3000}
+      />
     </>
   );
 }

@@ -15,7 +15,6 @@ export default async function handler(req, res) {
         if (!order) {
           return res.status(404).json({ error: 'Order not found' });
         }
-
         res.status(200).json(order);
       } catch (_) {
         res.status(500).json({ error: 'Failed to fetch order' });

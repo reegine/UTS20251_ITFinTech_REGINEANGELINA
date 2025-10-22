@@ -1,4 +1,3 @@
-// src/models/Payment.js
 import mongoose from "mongoose";
 
 const paymentSchema = new mongoose.Schema(
@@ -12,7 +11,6 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      // Remove index: true since we define indexes separately below
     },
     amount: {
       type: Number,
@@ -56,7 +54,6 @@ const paymentSchema = new mongoose.Schema(
   }
 );
 
-// Define ALL indexes here - remove any index: true from field definitions
 paymentSchema.index({ payment_id: 1 }, { unique: true });
 paymentSchema.index({ order: 1 });
 paymentSchema.index({ status: 1 });

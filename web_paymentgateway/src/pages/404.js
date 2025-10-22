@@ -30,16 +30,7 @@ export default function Custom404() {
             >
               ⬅️ Take me home
             </Link>
-
-            {/* <button
-              onClick={() => window.history.back()}
-              className="text-pink-600 hover:text-pink-800 font-medium underline decoration-dotted"
-            >
-              🔙 Go back to previous page
-            </button> */}
           </div>
-
-          {/* Extra cute touch */}
           <p className="mt-6 text-sm text-pink-400">
             Made with 💕 just for you
           </p>

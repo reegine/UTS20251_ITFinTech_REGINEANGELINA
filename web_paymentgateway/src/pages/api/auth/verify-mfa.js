@@ -24,7 +24,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid or expired verification code' });
     }
 
-    // Mark code as used
     await MFACode.findByIdAndUpdate(mfaRecord._id, { used: true });
 
     const user = await User.findById(userId);

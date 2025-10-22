@@ -1,4 +1,3 @@
-// src/pages/products.js
 import { useState, useEffect } from 'react';
 import { useCart } from '../contexts/CartContext';
 import ProductCard from '../components/ProductCard';
@@ -73,7 +72,6 @@ export default function Products() {
         throw new Error(data.error || 'Failed to load products');
       }
       
-      // Handle different response formats
       let productsData = [];
       let totalCount = 0;
       
@@ -88,7 +86,6 @@ export default function Products() {
         totalCount = data.total || data.count || 0;
       }
       
-      // Client-side fallback: ensure only active products are shown
       const activeProducts = productsData.filter(product => product.is_active !== false);
       
       if (activeProducts.length !== productsData.length) {
@@ -122,13 +119,11 @@ export default function Products() {
   };
 
   const handleAddToCart = useCallback((product) => {
-    // Don't allow adding inactive products to cart
     if (product.is_active === false) {
       toast.error('This product is no longer available');
       return;
     }
     
-    // Don't allow adding out-of-stock products to cart
     if (product.stock <= 0) {
       toast.error('This product is out of stock');
       return;
@@ -164,7 +159,6 @@ export default function Products() {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  // Final filtering on client side as safety measure
   const filteredProducts = Array.isArray(products) 
     ? products.filter(product => product.is_active !== false)
     : [];
@@ -209,9 +203,7 @@ export default function Products() {
 
         <div className="py-8">
           <div className="max-w-7xl mx-auto px-4">
-            {/* Filters Section */}
             <div className="flex flex-col gap-4 mb-8">
-              {/* Search Bar */}
               <form onSubmit={handleSearchSubmit} className="relative w-full max-w-2xl mx-auto">
                 <input
                   type="text"
@@ -229,7 +221,6 @@ export default function Products() {
                 </button>
               </form>
 
-              {/* Categories */}
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="font-medium text-gray-900">Browse Categories</h3>
@@ -301,7 +292,6 @@ export default function Products() {
               </div>
             </div>
 
-            {/* Error State */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6 text-center">
                 <span>{error}</span>
@@ -311,7 +301,6 @@ export default function Products() {
               </div>
             )}
 
-            {/* Products Grid */}
             {!error && (
               <>
                 <div className="mb-6 text-center">
@@ -357,7 +346,6 @@ export default function Products() {
                       ))}
                     </div>
 
-                    {/* Pagination */}
                     {pagination.pages > 1 && (
                       <div className="mt-12 flex justify-center items-center space-x-2">
                         <button

@@ -1,4 +1,3 @@
-// src/pages/api/products/index.js
 import connectDB from '../../../lib/mongodb';
 import Product from '../../../models/Product';
 
@@ -16,7 +15,6 @@ export default async function handler(req, res) {
           
           console.log('📋 Query parameters:', { currency, search, category, page, limit, minPrice, maxPrice, inStock });
           
-          // Always filter for active products
           let filter = { is_active: true };
           
           if (currency && currency !== 'all') {
@@ -34,14 +32,12 @@ export default async function handler(req, res) {
             ];
           }
 
-          // Add price range filter
           if (minPrice || maxPrice) {
             filter.price = {};
             if (minPrice) filter.price.$gte = parseFloat(minPrice);
             if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
           }
 
-          // Add stock filter
           if (inStock === 'true') {
             filter.stock = { $gt: 0 };
           }
@@ -59,7 +55,6 @@ export default async function handler(req, res) {
 
           console.log(`✅ Found ${products.length} active products out of ${total} total active products`);
           
-          // Double-check that all returned products are active
           const activeProducts = products.filter(product => product.is_active === true);
           
           if (activeProducts.length !== products.length) {

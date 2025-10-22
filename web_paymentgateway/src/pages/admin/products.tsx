@@ -1,4 +1,3 @@
-// src/pages/admin/products.tsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
@@ -34,7 +33,6 @@ export default function AdminProducts() {
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    // Wait for auth to be loaded
     if (user !== undefined) {
       setAuthChecked(true);
       
@@ -121,7 +119,6 @@ export default function AdminProducts() {
       const result = await response.json();
       console.log('✅ Delete successful:', result);
 
-      // Remove the product from state immediately for better UX
       setProducts(prev => prev.filter(product => product._id !== deleteConfirm.productId));
       
       showNotification('success', 'Product permanently deleted successfully');
@@ -130,7 +127,6 @@ export default function AdminProducts() {
       console.error('❌ Error deleting product:', error);
       showNotification('error', `Failed to delete product: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
-      // Refresh the list if deletion failed
       fetchProducts();
     } finally {
       setDeleting(false);
@@ -142,7 +138,6 @@ export default function AdminProducts() {
     setDeleteConfirm({ show: false, productId: null, productName: '' });
   };
 
-  // Show loading while checking auth
   if (!authChecked) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -168,7 +163,6 @@ export default function AdminProducts() {
         <title>Manage Products - Admin</title>
       </Head>
       
-      {/* Notification Component */}
       <Notification
         type={notification.type as NotificationProps['type']}
         message={notification.message}
@@ -177,7 +171,6 @@ export default function AdminProducts() {
         duration={3000}
       />
 
-      {/* Delete Confirmation Modal */}
       {deleteConfirm.show && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
@@ -293,7 +286,6 @@ export default function AdminProducts() {
   );
 }
 
-// Product Form Component with Image Upload
 function ProductForm({ product, onClose, onSave, token, showNotification }: any) {
   const [formData, setFormData] = useState({
     name: product?.name || '',
@@ -312,13 +304,11 @@ function ProductForm({ product, onClose, onSave, token, showNotification }: any)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         showNotification('error', 'Please select a valid image file');
         return;
       }
 
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         showNotification('error', 'Image size should be less than 5MB');
         return;
@@ -326,7 +316,6 @@ function ProductForm({ product, onClose, onSave, token, showNotification }: any)
 
       setImageFile(file);
       
-      // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string);
@@ -373,7 +362,6 @@ function ProductForm({ product, onClose, onSave, token, showNotification }: any)
     try {
       let imageUrl = formData.image_url;
 
-      // If user uploaded a file, upload it first
       if (useImageUpload && imageFile) {
         imageUrl = await uploadImageToServer(imageFile);
       }
@@ -413,7 +401,6 @@ function ProductForm({ product, onClose, onSave, token, showNotification }: any)
       const result = await response.json();
       console.log('✅ Product saved successfully:', result);
       
-      // Show success notification
       showNotification('success', 
         product 
           ? 'Product updated successfully!' 
@@ -473,11 +460,8 @@ function ProductForm({ product, onClose, onSave, token, showNotification }: any)
             />
           </div>
 
-          {/* Image Input Section */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
-            
-            {/* Toggle between URL and Upload */}
             <div className="flex space-x-4 mb-4">
               <button
                 type="button"
@@ -529,7 +513,6 @@ function ProductForm({ product, onClose, onSave, token, showNotification }: any)
               </div>
             )}
 
-            {/* Image Preview */}
             {(imagePreview || formData.image_url) && (
               <div className="mt-4">
                 <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>

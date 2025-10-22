@@ -1,5 +1,5 @@
 import connectDB from '../../../lib/mongodb';
-import Order from '../../../models/Order'; // 👈 Import your Order model
+import Order from '../../../models/Order';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -21,12 +21,11 @@ export default async function handler(req, res) {
 
     console.log('🔍 Searching orders for email:', email);
 
-    await connectDB(); // Just connect — you don't need the return value for Mongoose
+    await connectDB();
 
-    // ✅ Use Mongoose model to find orders
     const orders = await Order.find({ customer_email: email })
       .sort({ createdAt: -1 })
-      .lean() // Optional: returns plain JS objects, faster
+      .lean()
       .exec();
 
     console.log(`✅ Found ${orders.length} orders for ${email}`);

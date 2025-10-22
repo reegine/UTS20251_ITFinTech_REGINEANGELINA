@@ -1,9 +1,10 @@
-// src/pages/auth/login.tsx
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import Notification from '../../components/Notification';
+import { useNotification } from '../../hook/useNotification';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -13,11 +14,12 @@ export default function Login() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [pendingUserId, setPendingUserId] = useState('');
   const [loginMethod, setLoginMethod] = useState<'credentials' | 'mfa'>('credentials');
-  const [mfaData, setMfaData] = useState<{ email: string; phone: string } | null>(null); // Store MFA data
-  const [code, setCode] = useState(''); // Separate state for OTP code
+  const [mfaData, setMfaData] = useState<{ email: string; phone: string } | null>(null);
+  const [code, setCode] = useState('');
 
   const { login, verifyMFA, sendMFACode, initiateMFALogin } = useAuth();
   const router = useRouter();
+  const { notification, showNotification, hideNotification } = useNotification();
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,11 +30,16 @@ export default function Login() {
       const response = await login(email, password);
       
       console.log('Login successful:', response);
-      router.push('/');
+      showNotification('success', 'Login successful! Redirecting...');
+      
+      setTimeout(() => {
+        router.push('/');
+      }, 1500);
       
     } catch (error: any) {
       console.log('Login error:', error.message);
       setError(error.message || 'Login failed');
+      showNotification('error', error.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -51,15 +58,18 @@ export default function Login() {
         setMfaRequired(true);
         setMfaData({
           email: email,
-          phone: response.phone // Get phone from response
+          phone: response.phone 
         });
-        setCode(''); // Clear the code input
+        setCode(''); 
         setError('');
+        showNotification('success', 'Verification code sent to your WhatsApp!');
       } else {
         setError('MFA is not enabled for this account. Please use regular login.');
+        showNotification('warning', 'MFA is not enabled for this account.');
       }
     } catch (error: any) {
       setError(error.message);
+      showNotification('error', error.message || 'Failed to send verification code.');
     } finally {
       setLoading(false);
     }
@@ -72,9 +82,15 @@ export default function Login() {
 
     try {
       await verifyMFA(pendingUserId, code);
-      router.push('/');
+      showNotification('success', 'MFA verification successful! Redirecting...');
+      
+      setTimeout(() => {
+        router.push('/');
+      }, 1500);
+      
     } catch (error: any) {
       setError(error.message);
+      showNotification('error', error.message || 'Invalid verification code.');
     } finally {
       setLoading(false);
     }
@@ -86,15 +102,15 @@ export default function Login() {
     
     try {
       await sendMFACode(pendingUserId);
-      setError('Verification code sent successfully!');
+      showNotification('success', 'New verification code sent successfully!');
     } catch (error: any) {
       setError('Failed to resend code: ' + error.message);
+      showNotification('error', 'Failed to resend code. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Function to mask phone number (show first 2 and last 2 digits)
   const maskPhoneNumber = (phone: string) => {
     if (phone.length <= 4) return phone;
     const firstTwo = phone.slice(0, 2);
@@ -156,7 +172,7 @@ export default function Login() {
                   type="text"
                   required
                   value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} // Only numbers, max 6 digits
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500 focus:z-10 sm:text-sm text-center text-lg font-semibold tracking-widest"
                   placeholder="000000"
                   maxLength={6}
@@ -192,6 +208,15 @@ export default function Login() {
                 </div>
               </div>
             </form>
+
+            {/* Notification Component */}
+            <Notification
+              type={notification.type}
+              message={notification.message}
+              isVisible={notification.isVisible}
+              onClose={hideNotification}
+              duration={3000}
+            />
           </div>
         </div>
       </>
@@ -253,6 +278,15 @@ export default function Login() {
                 </button>
               </div>
             </form>
+
+            {/* Notification Component */}
+            <Notification
+              type={notification.type}
+              message={notification.message}
+              isVisible={notification.isVisible}
+              onClose={hideNotification}
+              duration={3000}
+            />
           </div>
         </div>
       </>
@@ -278,7 +312,6 @@ export default function Login() {
             </p>
           </div>
 
-          {/* Regular Login Form */}
           <form className="mt-8 space-y-6" onSubmit={handleCredentialsSubmit}>
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
@@ -359,6 +392,15 @@ export default function Login() {
               WhatsApp MFA is only available for accounts that have enabled it during registration
             </p>
           </div>
+
+          {/* Notification Component */}
+          <Notification
+            type={notification.type}
+            message={notification.message}
+            isVisible={notification.isVisible}
+            onClose={hideNotification}
+            duration={3000}
+          />
         </div>
       </div>
     </>

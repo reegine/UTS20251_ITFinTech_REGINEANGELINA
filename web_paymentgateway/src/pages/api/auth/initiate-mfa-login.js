@@ -1,4 +1,3 @@
-// src/pages/api/auth/initiate-mfa-login.js
 import connectDB from '../../../lib/mongodb';
 import User from '../../../models/User';
 import MFACode from '../../../models/MFACode';
@@ -23,7 +22,6 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if user has MFA enabled
     if (!user.mfaEnabled) {
       return res.status(400).json({ 
         success: false,
@@ -32,17 +30,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // Generate MFA code
-    const mfaCode = Math.random().toString().slice(2, 8); // 6-digit code
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const mfaCode = Math.random().toString().slice(2, 8);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); 
 
-    // Delete any existing unused codes for this user
     await MFACode.deleteMany({
       user: user._id,
       used: false
     });
 
-    // Create new MFA code
     await MFACode.create({
       user: user._id,
       code: mfaCode,
@@ -50,7 +45,6 @@ export default async function handler(req, res) {
       expiresAt
     });
 
-    // Send WhatsApp message to user's phone
     const whatsappResult = await sendMFACode(user.phone, mfaCode);
     
     if (!whatsappResult.success) {
@@ -65,7 +59,7 @@ export default async function handler(req, res) {
       requiresMFA: true,
       message: 'Verification code sent to your WhatsApp',
       userId: user._id,
-      phone: user.phone // Return phone number to display
+      phone: user.phone
     });
 
   } catch (error) {

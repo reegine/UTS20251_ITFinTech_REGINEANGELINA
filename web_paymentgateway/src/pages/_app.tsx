@@ -1,7 +1,6 @@
-// src/pages/_app.tsx
 import { AppProps } from "next/app";
 import { CartProvider } from "../contexts/CartContext";
-import { AuthProvider } from "../contexts/AuthContext"; // This should work now
+import { AuthProvider } from "../contexts/AuthContext";
 import Header from "../components/Header";
 import { Toaster } from "react-hot-toast";
 import "../styles/globals.css";

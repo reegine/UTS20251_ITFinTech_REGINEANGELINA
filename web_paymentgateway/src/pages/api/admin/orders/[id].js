@@ -1,4 +1,3 @@
-// src/pages/api/admin/orders/[id].js
 import connectDB from '../../../../lib/mongodb';
 import Order from '../../../../models/Order';
 import { verifyToken } from '../../../../lib/auth';
@@ -7,7 +6,6 @@ export default async function handler(req, res) {
   try {
     await connectDB();
 
-    // Verify admin access
     const token = req.headers.authorization?.replace('Bearer ', '');
     const decoded = await verifyToken(token);
     
@@ -20,7 +18,6 @@ export default async function handler(req, res) {
     if (req.method === 'PUT') {
       const { status } = req.body;
 
-      // Validate status
       const validStatuses = ['pending', 'paid', 'failed', 'expired', 'refunded', 'shipped', 'delivered'];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ 
@@ -28,7 +25,6 @@ export default async function handler(req, res) {
         });
       }
 
-      // Find and update the order
       const order = await Order.findByIdAndUpdate(
         id,
         { status },
@@ -46,7 +42,6 @@ export default async function handler(req, res) {
       });
 
     } else if (req.method === 'GET') {
-      // Get single order
       const order = await Order.findById(id);
       if (!order) {
         return res.status(404).json({ error: 'Order not found' });

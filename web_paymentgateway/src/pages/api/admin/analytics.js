@@ -1,4 +1,3 @@
-// src/pages/api/admin/analytics.js
 import connectDB from '../../../lib/mongodb';
 import Order from '../../../models/Order';
 import { verifyToken } from '../../../lib/auth';
@@ -15,17 +14,14 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      // Accept optional startDate, endDate, period (day, week, month, year)
       const { period = 'month', startDate, endDate } = req.query;
 
-      // Build match filter: only paid for revenueData but allow date-range override
       const matchFilter = { status: 'paid' };
       if (startDate || endDate) {
         matchFilter.createdAt = {};
         if (startDate) matchFilter.createdAt.$gte = new Date(startDate);
         if (endDate) matchFilter.createdAt.$lte = new Date(endDate);
       } else {
-        // default last 30 days if no dates provided
         matchFilter.createdAt = { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) };
       }
 
@@ -47,7 +43,7 @@ export default async function handler(req, res) {
         case 'year':
           groupFormat = { year: { $year: '$createdAt' } };
           break;
-        default: // month
+        default:
           groupFormat = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
       }
 

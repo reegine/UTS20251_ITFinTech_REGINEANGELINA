@@ -1,9 +1,10 @@
-// src/pages/auth/register.tsx
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import Notification from '../../components/Notification';
+import { useNotification } from '../../hook/useNotification';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -18,6 +19,7 @@ export default function Register() {
 
   const { register } = useAuth();
   const router = useRouter();
+  const { notification, showNotification, hideNotification } = useNotification();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -34,9 +36,15 @@ export default function Register() {
 
     try {
       await register(formData);
-      router.push('/auth/login?message=Registration successful. Please login.');
+      showNotification('success', 'Registration successful! Redirecting to login...');
+      
+      setTimeout(() => {
+        router.push('/auth/login');
+      }, 2000);
+      
     } catch (error: any) {
       setError(error.message);
+      showNotification('error', error.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -152,6 +160,15 @@ export default function Register() {
               </button>
             </div>
           </form>
+
+          {/* Notification Component */}
+          <Notification
+            type={notification.type}
+            message={notification.message}
+            isVisible={notification.isVisible}
+            onClose={hideNotification}
+            duration={3000}
+          />
         </div>
       </div>
     </>

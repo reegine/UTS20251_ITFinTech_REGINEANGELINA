@@ -1,4 +1,3 @@
-// src/pages/cart.tsx
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';

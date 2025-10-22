@@ -1,4 +1,3 @@
-// src/lib/whatsapp.js - Using Fonnte API
 export async function sendWhatsAppMessage(to, message) {
   try {
     const apiKey = process.env.FONNTE_API_KEY;
@@ -9,7 +8,6 @@ export async function sendWhatsAppMessage(to, message) {
       return { success: false, error: 'Fonnte API key not configured' };
     }
 
-    // ✅ Format phone number correctly (no +)
     const formattedTo = to.replace('+', '').trim();
 
     console.log('📤 Sending WhatsApp via Fonnte:');
@@ -89,25 +87,24 @@ export async function sendOrderNotification(order, type = 'checkout') {
 
     if (type === 'checkout') {
       message =
-        `🛒 *NEW ORDER CREATED*\n\n` +
+        `🔔 *NEW ORDER RECEIVED*\n\n` +
         `*Order ID:* ${order.order_id}\n` +
         `*Customer:* ${order.customer_name}\n` +
         `*Email:* ${order.customer_email}\n` +
-        `*Phone:* ${order.customer_phone || 'N/A'}\n` +
-        `*Total:* ${order.currency} ${order.total_amount?.toLocaleString() || '0'}\n\n` +
-        `*Items:*\n${order.items
-          .map((item, index) => `${index + 1}. ${item.product_name} x${item.quantity} - ${order.currency} ${(item.unit_price * item.quantity).toLocaleString()}`)
+        `*Phone:* ${order.customer_phone || '—'}\n` +
+        `*Total Amount:* ${order.currency} ${order.total_amount?.toLocaleString() || '0'}\n\n` +
+        `📦 *Order Items:*\n${order.items
+          .map((item, index) => `${index + 1}. ${item.product_name} × ${item.quantity} — ${order.currency} ${(item.unit_price * item.quantity).toLocaleString()}`)
           .join('\n')}\n\n` +
-        `_Check the admin dashboard for details._`;
+        `📍 *Action Required:* Please review and process this order in the admin dashboard.`;
     } else if (type === 'payment') {
       message =
-        `✅ *PAYMENT COMPLETED*\n\n` +
+        `✅ *PAYMENT RECEIVED – ORDER CONFIRMED*\n\n` +
         `*Order ID:* ${order.order_id}\n` +
         `*Customer:* ${order.customer_name}\n` +
         `*Amount:* ${order.currency} ${order.total_amount?.toLocaleString() || '0'}\n` +
-        `*Status:* Paid ✅\n\n` +
-        `Thank you for your purchase! 🎉\n` +
-        `_Order has been confirmed and will be processed soon._`;
+        `*Status:* ✅ Paid\n\n` +
+        `🟢 The customer has completed payment. Please proceed with order fulfillment.`;
     }
 
     console.log(`📩 Sending ${type} notification to admin: ${adminNumber}`);

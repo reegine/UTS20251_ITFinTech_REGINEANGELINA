@@ -1,14 +1,12 @@
 import { v2 as cloudinary } from 'cloudinary';
 import adminAuth from '../../../middleware/adminAuth';
 
-// Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Helper to handle stream upload
 const streamUpload = (buffer, folder = 'product_uploads') => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -34,7 +32,6 @@ async function handler(req, res) {
   }
 
   try {
-    // Parse multipart form data manually (since bodyParser is false)
     const contentType = req.headers['content-type'];
     if (!contentType || !contentType.includes('multipart/form-data')) {
       return res.status(400).json({
@@ -43,7 +40,6 @@ async function handler(req, res) {
       });
     }
 
-    // Use busboy to parse file (lightweight alternative to multer)
     const busboy = require('busboy');
     const bb = busboy({ headers: req.headers });
 
@@ -89,7 +85,6 @@ async function handler(req, res) {
       }
 
       try {
-        // Upload to Cloudinary
         const result = await streamUpload(fileBuffer, 'product_uploads');
         
         console.log('✅ Image uploaded to Cloudinary:', result.secure_url);
@@ -125,7 +120,6 @@ async function handler(req, res) {
   }
 }
 
-// Disable body parser to handle multipart
 export const config = {
   api: {
     bodyParser: false,

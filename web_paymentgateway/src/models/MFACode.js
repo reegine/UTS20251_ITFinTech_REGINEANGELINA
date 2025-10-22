@@ -18,7 +18,7 @@ const mfaCodeSchema = new mongoose.Schema({
   expiresAt: {
     type: Date,
     required: true,
-    index: { expireAfterSeconds: 600 } // 10 minutes
+    index: { expireAfterSeconds: 600 }
   },
   used: {
     type: Boolean,

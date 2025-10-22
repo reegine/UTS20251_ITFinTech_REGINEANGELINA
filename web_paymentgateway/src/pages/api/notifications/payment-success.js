@@ -45,7 +45,6 @@ export default async function handler(req, res) {
 
     console.log('✅ Order found:', order.order_id);
 
-    // Send WhatsApp notification
     const notificationResult = await sendOrderNotification(order, 'payment');
 
     if (notificationResult.success) {

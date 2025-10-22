@@ -16,18 +16,15 @@ export default function Orders() {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
     
-    // Check for success redirect from payment
     if (success === 'true') {
       const savedEmail = localStorage.getItem('customerEmail');
       if (savedEmail) {
         setCustomerEmail(savedEmail);
         loadOrders(savedEmail);
-        // Clean up the URL without page reload
         window.history.replaceState({}, '', '/orders');
       }
     }
     
-    // Also load orders if we have a saved email (page refresh case)
     const savedEmail = localStorage.getItem('customerEmail');
     if (savedEmail && !customerEmail) {
       setCustomerEmail(savedEmail);
@@ -40,7 +37,7 @@ export default function Orders() {
     if (order.expiry_date) {
         return new Date(order.expiry_date) > new Date();
     }
-    return true; // assume valid if no expiry
+    return true;
   };
 
   const loadOrders = async (email) => {
@@ -68,7 +65,6 @@ export default function Orders() {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
         } catch (parseError) {
-          // If response is not JSON, use status text
           errorMessage = response.statusText || errorMessage;
         }
         
@@ -88,7 +84,6 @@ export default function Orders() {
     } catch (err) {
       console.error('❌ Error loading orders:', err);
       
-      // More specific error messages
       if (err.message.includes('Database connection failed')) {
         setError('Service temporarily unavailable. Please try again later.');
       } else if (err.message.includes('500')) {
@@ -302,11 +297,9 @@ export default function Orders() {
                             <button
                             onClick={async () => {
                                 try {
-                                // Reuse existing payment URL if available
                                 if (order.payment_url) {
                                     window.location.href = order.payment_url;
                                 } else {
-                                    // Or create a new payment session
                                     const res = await fetch('/api/payments/create', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },

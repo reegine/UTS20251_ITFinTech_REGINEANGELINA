@@ -1,4 +1,3 @@
-// src/pages/api/admin/products/index.js
 import connectDB from '../../../../lib/mongodb';
 import Product from '../../../../models/Product';
 import adminAuth from '../../../../middleware/adminAuth';
@@ -9,7 +8,6 @@ async function handler(req, res) {
   try {
     switch (req.method) {
       case 'GET':
-        // Get all products (including inactive ones for admin)
         const products = await Product.find().sort({ createdAt: -1 });
         return res.status(200).json({
           success: true,
@@ -17,7 +15,6 @@ async function handler(req, res) {
         });
 
       case 'POST':
-        // Create new product
         const { name, description, price, image_url, stock, category, is_active } = req.body;
 
         const product = await Product.create({

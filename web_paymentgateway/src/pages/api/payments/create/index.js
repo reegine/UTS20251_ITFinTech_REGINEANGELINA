@@ -1,4 +1,3 @@
-// src/pages/api/payments/create/index.js
 import connectDB from '../../../../lib/mongodb';
 import Order from '../../../../models/Order';
 import Payment from '../../../../models/Payment';
@@ -42,13 +41,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // Send WhatsApp notification for checkout - but don't block the process if it fails
     console.log('🛒 Sending WhatsApp notification for NEW ORDER:', order.order_id);
     try {
       await sendOrderNotification(order, 'checkout');
     } catch (whatsappError) {
       console.warn('⚠️ WhatsApp notification failed, but continuing payment process:', whatsappError.message);
-      // Don't throw error, just log it and continue
     }
 
     const xenditItems = [
@@ -71,7 +68,7 @@ export default async function handler(req, res) {
       amount: parseFloat(order.total_amount),
       currency: order.currency,
       description: `Payment for order ${order.order_id}`,
-      invoice_duration: 86400, // 24 hours
+      invoice_duration: 86400,
       customer: {
         given_names: order.customer_name.split(' ')[0] || 'Customer',
         surname: order.customer_name.split(' ').slice(1).join(' ') || 'Customer',

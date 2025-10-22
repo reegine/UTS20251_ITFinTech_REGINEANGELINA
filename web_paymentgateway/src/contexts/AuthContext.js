@@ -1,4 +1,3 @@
-// src/contexts/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
@@ -17,7 +16,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored auth data on mount
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
     
@@ -44,13 +42,12 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.error);
       }
 
-      // Regular login without MFA
       setUser(data.data.user);
       setToken(data.data.token);
       localStorage.setItem('user', JSON.stringify(data.data.user));
       localStorage.setItem('token', data.data.token);
       
-      return data; // Return success data
+      return data; 
     } catch (error) {
       throw new Error(error.message || 'Login failed');
     }
@@ -71,10 +68,9 @@ export const AuthProvider = ({ children }) => {
       throw new Error(data.error);
     }
 
-    // Store temporary data for MFA verification
     localStorage.setItem('pendingUserId', data.userId);
     
-    return data; // This now includes phone number
+    return data;
   };
 
   const sendMFACode = async (userId) => {

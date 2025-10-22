@@ -1,4 +1,3 @@
-// src/pages/api/admin/users.js
 import connectDB from '../../../lib/mongodb';
 import User from '../../../models/User';
 import bcrypt from 'bcryptjs';
@@ -15,7 +14,6 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      // list users with optional role / search / page
       const { page = 1, limit = 20, role, search } = req.query;
       const filter = {};
       if (role) filter.role = role;
@@ -31,7 +29,6 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      // create new admin or user (admin creates)
       const { name, email, password, phone, role = 'admin' } = req.body;
       if (!name || !email || !password) return res.status(400).json({ error: 'Missing fields' });
 
@@ -47,7 +44,6 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-      // update user (body must contain id and fields)
       const { id, name, phone, role, isActive } = req.body;
       if (!id) return res.status(400).json({ error: 'Missing user id' });
       const user = await User.findById(id);
@@ -68,7 +64,6 @@ export default async function handler(req, res) {
     if (req.method === 'DELETE') {
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: 'Missing user id' });
-      // prevent deleting self? (optional) - here we allow but front-end should ask confirm.
       await User.findByIdAndDelete(id);
       res.status(200).json({ success: true });
       return;

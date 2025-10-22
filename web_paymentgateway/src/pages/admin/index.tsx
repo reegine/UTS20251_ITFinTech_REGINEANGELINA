@@ -1,4 +1,3 @@
-// src/pages/admin/index.tsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
@@ -92,7 +91,6 @@ export default function AdminDashboard() {
             <p className="text-gray-600">Manage your dessert shop</p>
           </div>
 
-          {/* Stats Grid */}
           {stats && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -112,7 +110,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Quick Actions */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Link href="/admin/orders" className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
               <div className="text-center">
@@ -138,7 +135,6 @@ export default function AdminDashboard() {
               </div>
             </Link>
 
-            {/* ✅ Replaced Settings with User Management */}
             <Link href="/admin/users" className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
               <div className="text-center">
                 <div className="text-3xl mb-3">👥</div>

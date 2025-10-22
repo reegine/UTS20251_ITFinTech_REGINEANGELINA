@@ -1,4 +1,3 @@
-// src/pages/api/webhooks/xendit.js
 import connectDB from '../../../lib/mongodb';
 import Order from '../../../models/Order';
 import Payment from '../../../models/Payment';
@@ -100,7 +99,6 @@ export default async function handler(req, res) {
     
     console.log(`✅ Updated order ${externalId} to status: ${orderStatus}`);
 
-    // Send WhatsApp notification for payment completion
     if (orderStatus === 'paid') {
       console.log(`💰 Sending payment completion notification for order: ${externalId}`);
       try {
@@ -108,7 +106,6 @@ export default async function handler(req, res) {
         console.log(`✅ Payment notification sent successfully for order: ${externalId}`);
       } catch (whatsappError) {
         console.warn(`⚠️ Payment WhatsApp notification failed: ${whatsappError.message}`);
-        // Don't fail the webhook if WhatsApp fails
       }
     }
 
