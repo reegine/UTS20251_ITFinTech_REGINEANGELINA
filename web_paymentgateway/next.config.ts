@@ -20,6 +20,8 @@ const nextConfig: NextConfig = {
     'ordinarybaker.com.my',
     'dollopofdough.com',
     'www.tasteofhome.com',
+    'letsenhance.io',
+    '*'
   ],
 },
 };

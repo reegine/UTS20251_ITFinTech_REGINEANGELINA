@@ -54,39 +54,93 @@ export default function Checkout() {
     };
   }, [items]);
 
-   useEffect(() => {
+  useEffect(() => {
     if (!paymentUrl || !order) return;
 
-    const pollInterval = setInterval(async () => {
-        try {
+    let isMounted = true;
+    let pollCount = 0;
+    const maxPolls = 60; // 5 minutes at 5-second intervals
+
+    const pollPaymentStatus = async () => {
+      if (!isMounted || pollCount >= maxPolls) {
+        if (pollCount >= maxPolls) {
+          console.warn('Max polling attempts reached');
+          setError('Payment status check timeout. Please check your email or contact support.');
+        }
+        return;
+      }
+
+      pollCount++;
+      
+      try {
+        console.log(`🔄 Polling payment status (attempt ${pollCount}) for order:`, order.order_id);
+        
         const response = await fetch(`/api/payments/status?order_id=${order.order_id}`);
-        if (!response.ok) throw new Error('Failed to fetch payment status');
+        
+        if (!response.ok) {
+          console.warn(`Polling failed with status: ${response.status}`);
+          return; // Continue polling on errors
+        }
         
         const result = await response.json();
-        if (result.success) {
-            const paymentStatus = result.data.status;
+        
+        if (!result.success) {
+          console.warn('Payment status check failed:', result.error);
+          return; // Continue polling
+        }
+        
+        const paymentStatus = result.data.status;
+        console.log('📊 Payment status update:', paymentStatus);
+        
+        if (paymentStatus !== 'pending') {
+          console.log('🎯 Payment finalized with status:', paymentStatus);
+          setPaymentStatus(paymentStatus);
+          
+          if (paymentStatus === 'paid' || paymentStatus === 'success') {
+            console.log('✅ Payment successful, clearing cart and redirecting...');
+            clearCart();
+            localStorage.removeItem('cart');
             
-            if (paymentStatus !== 'pending') {
-            clearInterval(pollInterval);
-            setPaymentStatus(paymentStatus);
-            
-            if (paymentStatus === 'paid') {
-                clearCart();
-                localStorage.removeItem('cart');
-                
-                setTimeout(() => {
+            setTimeout(() => {
+              if (isMounted) {
                 router.push('/orders?success=true');
-                }, 3000);
-            }
-            }
+              }
+            }, 3000);
+          }
         }
-        } catch (error) {
-        console.error('Polling error:', error);
-        }
-    }, 3000);
+      } catch (error) {
+        console.error('❌ Polling error:', error);
+        // Continue polling on network errors
+      }
+    };
 
-    return () => clearInterval(pollInterval);
-    }, [paymentUrl, order, clearCart, router]);
+    const pollInterval = setInterval(pollPaymentStatus, 5000);
+
+    // Cleanup function
+    return () => {
+      console.log('🧹 Cleaning up payment polling');
+      isMounted = false;
+      clearInterval(pollInterval);
+    };
+  }, [paymentUrl, order, clearCart, router]);
+
+  useEffect(() => {
+    if (paymentStatus === 'paid' || paymentStatus === 'success') {
+      console.log('✅ Payment successful, redirecting to orders page...');
+      clearCart();
+      localStorage.removeItem('cart');
+      setOrder(null);
+      setPaymentUrl(null);
+      setPaymentStatus(null);
+
+      const redirectTimer = setTimeout(() => {
+        router.push('/orders?success=true');
+      }, 3000);
+
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [paymentStatus, clearCart, router]);
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -121,6 +175,16 @@ export default function Checkout() {
     setError(null);
 
     try {
+      console.log('=== 🛒 STARTING CHECKOUT ===');
+      console.log('🆕 New checkout session started');
+      
+      // Reset any previous state
+      setPaymentUrl(null);
+      setPaymentStatus(null);
+      setOrder(null);
+
+      // Create order
+      console.log('1. Creating order...');
       const orderData = {
         customer_name: customerInfo.name,
         customer_email: customerInfo.email,
@@ -137,53 +201,107 @@ export default function Checkout() {
         total_amount: orderTotals.total
       };
 
+      console.log('Order data being sent:', {
+        customer_email: orderData.customer_email,
+        items_count: orderData.items.length,
+        total_amount: orderData.total_amount
+      });
+
       const orderResponse = await fetch('/api/orders', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData),
       });
 
-      const orderResult = await orderResponse.json();
+      console.log('Order creation response:', {
+        status: orderResponse.status,
+        ok: orderResponse.ok
+      });
 
+      if (!orderResponse.ok) {
+        const errorText = await orderResponse.text();
+        console.error('Order creation failed:', errorText);
+        throw new Error('Failed to create order');
+      }
+
+      const orderResult = await orderResponse.json();
+      
       if (!orderResult.success) {
         throw new Error(orderResult.error || 'Failed to create order');
       }
 
       setOrder(orderResult.data);
+      console.log('✅ Order created:', orderResult.data.order_id);
+
+      // Create payment
+      console.log('2. Creating payment...');
+      console.log('Calling: POST /api/payments/create');
+      console.log('With order_id:', orderResult.data.order_id);
 
       const paymentResponse = await fetch('/api/payments/create', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            order_id: orderResult.data.order_id
+          order_id: orderResult.data.order_id
         }),
-    });
+      });
 
-      const contentType = paymentResponse.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await paymentResponse.text();
-        console.error('Non-JSON response:', text);
-        throw new Error('Server returned an error page');
+      console.log('=== PAYMENT RESPONSE ANALYSIS ===');
+      console.log('Status:', paymentResponse.status);
+      console.log('Status Text:', paymentResponse.statusText);
+      console.log('OK:', paymentResponse.ok);
+
+      // Read the response body
+      let responseBody;
+      try {
+        responseBody = await paymentResponse.text();
+        console.log('Response body:', responseBody.substring(0, 500));
+      } catch (readError) {
+        console.error('Could not read response body:', readError);
+        responseBody = 'Could not read response';
       }
 
-      const paymentResult = await paymentResponse.json();
+      if (!paymentResponse.ok) {
+        console.error('❌ Payment creation failed');
+        
+        if (paymentResponse.status === 405) {
+          throw new Error('Payment endpoint configuration error.');
+        }
+        
+        if (paymentResponse.status === 404) {
+          throw new Error('Payment endpoint not found.');
+        }
+        
+        throw new Error(`Payment failed: ${paymentResponse.status} ${paymentResponse.statusText}`);
+      }
+
+      // Try to parse response
+      let paymentResult;
+      try {
+        paymentResult = JSON.parse(responseBody);
+      } catch (parseError) {
+        console.error('Failed to parse payment response as JSON:', parseError);
+        console.error('Raw response:', responseBody);
+        throw new Error('Payment service returned invalid response');
+      }
 
       if (!paymentResult.success) {
-        throw new Error(paymentResult.error || 'Failed to create payment');
+        throw new Error(paymentResult.error || 'Payment creation failed');
       }
 
+      console.log('✅ Payment created successfully!');
+      console.log('Payment URL:', paymentResult.data.payment_url);
+      
       setPaymentUrl(paymentResult.data.payment_url);
       setIframeLoaded(false);
 
     } catch (err) {
-      console.error('Checkout error:', err);
+      console.error('=== ❌ CHECKOUT FAILED ===');
+      console.error('Error:', err.message);
       setError(err.message || 'Checkout failed. Please try again.');
     } finally {
       setIsSubmitting(false);
+      console.log('=== 🏁 CHECKOUT PROCESS COMPLETED ===');
     }
   };
 

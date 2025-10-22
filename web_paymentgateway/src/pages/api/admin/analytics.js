@@ -1,3 +1,4 @@
+// src/pages/api/admin/analytics.js
 import connectDB from '../../../lib/mongodb';
 import Order from '../../../models/Order';
 import { verifyToken } from '../../../lib/auth';
@@ -6,39 +7,52 @@ export default async function handler(req, res) {
   try {
     await connectDB();
 
-    // Verify admin access
     const token = req.headers.authorization?.replace('Bearer ', '');
     const decoded = await verifyToken(token);
-    
-    if (decoded.role !== 'admin') {
+
+    if (!decoded || decoded.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
     if (req.method === 'GET') {
-      const { period = 'month' } = req.query; // day, week, month, year
-      
+      // Accept optional startDate, endDate, period (day, week, month, year)
+      const { period = 'month', startDate, endDate } = req.query;
+
+      // Build match filter: only paid for revenueData but allow date-range override
+      const matchFilter = { status: 'paid' };
+      if (startDate || endDate) {
+        matchFilter.createdAt = {};
+        if (startDate) matchFilter.createdAt.$gte = new Date(startDate);
+        if (endDate) matchFilter.createdAt.$lte = new Date(endDate);
+      } else {
+        // default last 30 days if no dates provided
+        matchFilter.createdAt = { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) };
+      }
+
       let groupFormat;
       switch (period) {
         case 'day':
-          groupFormat = { day: { $dayOfMonth: '$createdAt' }, month: { $month: '$createdAt' }, year: { $year: '$createdAt' } };
+          groupFormat = {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          };
           break;
         case 'week':
-          groupFormat = { week: { $week: '$createdAt' }, year: { $year: '$createdAt' } };
+          groupFormat = {
+            year: { $year: '$createdAt' },
+            week: { $week: '$createdAt' }
+          };
           break;
         case 'year':
           groupFormat = { year: { $year: '$createdAt' } };
           break;
         default: // month
-          groupFormat = { month: { $month: '$createdAt' }, year: { $year: '$createdAt' } };
+          groupFormat = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
       }
 
       const revenueData = await Order.aggregate([
-        {
-          $match: {
-            status: 'paid',
-            createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days
-          }
-        },
+        { $match: matchFilter },
         {
           $group: {
             _id: groupFormat,
@@ -46,7 +60,7 @@ export default async function handler(req, res) {
             orderCount: { $sum: 1 }
           }
         },
-        { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+        { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1, '_id.day': 1 } }
       ]);
 
       const statusStats = await Order.aggregate([
@@ -93,6 +107,7 @@ export default async function handler(req, res) {
       res.status(405).end(`Method ${req.method} Not Allowed`);
     }
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch analytics: ' + error.message });
+    console.error('analytics error', error);
+    res.status(500).json({ error: 'Failed to fetch analytics: ' + (error.message || error) });
   }
 }

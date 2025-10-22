@@ -44,13 +44,6 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.error);
       }
 
-      // Handle MFA required case
-      if (data.requiresMFA) {
-        // Store temporary data for MFA verification
-        localStorage.setItem('pendingUserId', data.userId);
-        throw new Error('MFA_REQUIRED');
-      }
-
       // Regular login without MFA
       setUser(data.data.user);
       setToken(data.data.token);
@@ -59,11 +52,47 @@ export const AuthProvider = ({ children }) => {
       
       return data; // Return success data
     } catch (error) {
-      if (error.message === 'MFA_REQUIRED') {
-        throw error; // Re-throw to handle in component
-      }
       throw new Error(error.message || 'Login failed');
     }
+  };
+
+  const initiateMFALogin = async (email) => {
+    const response = await fetch('/api/auth/initiate-mfa-login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error);
+    }
+
+    // Store temporary data for MFA verification
+    localStorage.setItem('pendingUserId', data.userId);
+    
+    return data; // This now includes phone number
+  };
+
+  const sendMFACode = async (userId) => {
+    const response = await fetch('/api/auth/resend-mfa', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId }),
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error);
+    }
+
+    return data;
   };
 
   const register = async (userData) => {
@@ -118,8 +147,10 @@ export const AuthProvider = ({ children }) => {
     user,
     token,
     login,
+    initiateMFALogin,
     register,
     verifyMFA,
+    sendMFACode,
     logout,
     loading,
   };

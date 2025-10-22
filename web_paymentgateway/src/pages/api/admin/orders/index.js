@@ -1,6 +1,7 @@
-import connectDB from '../../../lib/mongodb';
-import Order from '../../../models/Order';
-import { verifyToken } from '../../../lib/auth';
+// src/pages/api/admin/orders/index.js
+import connectDB from '../../../../lib/mongodb';
+import Order from '../../../../models/Order';
+import { verifyToken } from '../../../../lib/auth';
 
 export default async function handler(req, res) {
   try {
@@ -10,7 +11,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     const decoded = await verifyToken(token);
     
-    if (decoded.role !== 'admin') {
+    if (!decoded || decoded.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -28,10 +29,10 @@ export default async function handler(req, res) {
       const skip = (page - 1) * limit;
       
       const orders = await Order.find(filter)
-        .populate('items.product')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit));
+        .limit(parseInt(limit))
+        .lean(); // Use lean() for better performance
 
       const total = await Order.countDocuments(filter);
 
@@ -50,6 +51,7 @@ export default async function handler(req, res) {
       res.status(405).end(`Method ${req.method} Not Allowed`);
     }
   } catch (error) {
+    console.error('Orders API error:', error);
     res.status(500).json({ error: 'Failed to fetch orders: ' + error.message });
   }
 }

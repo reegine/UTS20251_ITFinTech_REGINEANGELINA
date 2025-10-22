@@ -1,136 +1,123 @@
+// src/pages/api/orders/index.js
 import connectDB from '../../../lib/mongodb';
 import Order from '../../../models/Order';
 import Product from '../../../models/Product';
-import { v4 as uuidv4 } from 'uuid';
 
 export default async function handler(req, res) {
-  await connectDB();
+  console.log('📦 Orders API called:', req.method, req.url);
 
-  if (req.method === 'GET') {
-    try {
-      const { email, page = 1, limit = 10 } = req.query;
-      
-      let query = {};
-      if (email) {
-        query.customer_email = email.toLowerCase();
-      }
+  if (req.method !== 'POST') {
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed. Only POST requests are accepted.' 
+    });
+  }
 
-      const skip = (page - 1) * limit;
-      
-      const orders = await Order.find(query)
-        .populate('items.product')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit))
-        .lean();
+  try {
+    await connectDB();
+    console.log('✅ Database connected for orders');
 
-      const total = await Order.countDocuments(query);
+    const orderData = req.body;
+    console.log('📝 Order data received');
 
-      res.status(200).json({
-        success: true,
-        data: orders,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / limit)
-        }
-      });
-    } catch (error) {
-      res.status(500).json({
+    // Generate a truly unique order ID with better randomness
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 15); // More characters for better uniqueness
+    const order_id = `order-${timestamp}-${random}`;
+    
+    console.log('🆕 Generated order ID:', order_id);
+
+    // Validate that items exist
+    if (!orderData.items || !Array.isArray(orderData.items) || orderData.items.length === 0) {
+      return res.status(400).json({
         success: false,
-        error: 'Failed to fetch orders'
+        error: 'Order must contain at least one item'
       });
     }
-  } else if (req.method === 'POST') {
-    try {
-        const {
-        customer_email,
-        customer_name,
-        customer_phone,
-        items,
-        shipping_address,
-        subtotal,
-        tax_amount,
-        delivery_fee,
-        admin_fee,
-        total_amount
-        } = req.body;
 
-        if (!customer_email || !customer_name || !items || !Array.isArray(items)) {
-        return res.status(400).json({
-            success: false,
-            error: 'Missing required fields: customer_email, customer_name, items'
-        });
-        }
+    // Fetch product details for the items
+    const productIds = orderData.items.map(item => item.product_id);
+    const products = await Product.find({ 
+      _id: { $in: productIds },
+      is_active: true 
+    });
 
-        let calculatedSubtotal = 0;
-        const orderItems = [];
-        for (const item of items) {
-        const product = await Product.findById(item.product_id);
-        if (!product) {
-            return res.status(400).json({
-            success: false,
-            error: `Product not found: ${item.product_id}`
-            });
-        }
-        if (product.stock < item.quantity) {
-            return res.status(400).json({
-            success: false,
-            error: `Insufficient stock for ${product.name}`
-            });
-        }
-        const itemTotal = product.price * item.quantity;
-        calculatedSubtotal += itemTotal;
-        orderItems.push({
-            product: product._id,
-            product_name: product.name,
-            product_image: product.image_url,
-            quantity: item.quantity,
-            unit_price: product.price,
-            total_price: itemTotal
-        });
-        }
-
-        const order = await Order.create({
-        order_id: `order-${uuidv4().slice(0, 12)}`,
-        customer_email: customer_email.toLowerCase(),
-        customer_name,
-        customer_phone,
-        shipping_address,
-        items: orderItems,
-        subtotal: subtotal || calculatedSubtotal,
-        tax_amount: tax_amount || 0,
-        delivery_fee: delivery_fee || 0,
-        admin_fee: admin_fee || 0,
-        total_amount: total_amount,
-        currency: 'IDR',
-        status: 'pending'
-        });
-
-        for (const item of items) {
-        await Product.findByIdAndUpdate(
-            item.product_id,
-            { $inc: { stock: -item.quantity } }
-        );
-        }
-
-        const populatedOrder = await Order.findById(order._id)
-        .populate('items.product')
-        .lean();
-
-        res.status(201).json({
-        success: true,
-        data: populatedOrder
-        });
-    } catch (_) {
-        res.status(500).json({
+    if (products.length !== orderData.items.length) {
+      return res.status(400).json({
         success: false,
-        error: 'Failed to create order: ' + error.message
-        });
+        error: 'Some products are not available or not found'
+      });
     }
-    } else {
-    res.setHeader('Allow', ['GET', 'POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+
+    // Create items with product details
+    const orderItems = orderData.items.map(item => {
+      const product = products.find(p => p._id.toString() === item.product_id);
+      return {
+        product: item.product_id,
+        product_name: product.name,
+        product_image: product.image_url,
+        quantity: item.quantity,
+        unit_price: product.price,
+        total_price: product.price * item.quantity
+      };
+    });
+
+    // Calculate totals if not provided
+    const subtotal = orderItems.reduce((sum, item) => sum + item.total_price, 0);
+    const tax_amount = orderData.tax_amount || Math.round(subtotal * 0.11);
+    const delivery_fee = orderData.delivery_fee || 15000;
+    const admin_fee = orderData.admin_fee || 5000;
+    const total_amount = subtotal + tax_amount + delivery_fee + admin_fee;
+
+    // Check if order with this ID already exists (just in case)
+    const existingOrder = await Order.findOne({ order_id });
+    if (existingOrder) {
+      console.warn('⚠️ Order ID collision detected:', order_id);
+      // Regenerate order ID
+      const newRandom = Math.random().toString(36).substring(2, 15);
+      order_id = `order-${timestamp}-${newRandom}`;
+      console.log('🔄 Regenerated order ID:', order_id);
+    }
+
+    // Create order
+    const order = await Order.create({
+      order_id,
+      customer_name: orderData.customer_name,
+      customer_email: orderData.customer_email,
+      customer_phone: orderData.customer_phone,
+      shipping_address: orderData.shipping_address,
+      items: orderItems,
+      subtotal,
+      tax_amount,
+      delivery_fee,
+      admin_fee,
+      total_amount,
+      currency: 'IDR',
+      status: 'pending'
+    });
+
+    console.log('✅ Order created successfully:', order.order_id);
+
+    res.status(200).json({
+      success: true,
+      data: order,
+      message: 'Order created successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Order creation error:', error);
+    
+    // Handle duplicate key errors specifically
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        error: 'Order ID collision occurred. Please try again.'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create order: ' + error.message
+    });
   }
 }

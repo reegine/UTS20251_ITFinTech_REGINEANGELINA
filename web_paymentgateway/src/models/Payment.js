@@ -1,3 +1,4 @@
+// src/models/Payment.js
 import mongoose from "mongoose";
 
 const paymentSchema = new mongoose.Schema(
@@ -11,6 +12,7 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      // Remove index: true since we define indexes separately below
     },
     amount: {
       type: Number,
@@ -24,7 +26,7 @@ const paymentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "paid", "success", "failed", "expired", "refunded"], // ADD "paid" here
+      enum: ["pending", "paid", "success", "failed", "expired", "refunded"],
       default: "pending",
     },
     payment_method: {
@@ -54,10 +56,12 @@ const paymentSchema = new mongoose.Schema(
   }
 );
 
-paymentSchema.index({ payment_id: 1 });
+// Define ALL indexes here - remove any index: true from field definitions
+paymentSchema.index({ payment_id: 1 }, { unique: true });
 paymentSchema.index({ order: 1 });
-paymentSchema.index({ status: 1, created_at: -1 });
+paymentSchema.index({ status: 1 });
 paymentSchema.index({ expiry_date: 1 }, { expireAfterSeconds: 0 });
+paymentSchema.index({ xendit_invoice_id: 1 });
 
 export default mongoose.models.Payment ||
   mongoose.model("Payment", paymentSchema);

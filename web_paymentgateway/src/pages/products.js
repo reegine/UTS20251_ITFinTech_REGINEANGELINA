@@ -1,3 +1,4 @@
+// src/pages/products.js
 import { useState, useEffect } from 'react';
 import { useCart } from '../contexts/CartContext';
 import ProductCard from '../components/ProductCard';
@@ -6,7 +7,6 @@ import Head from 'next/head';
 import toast from 'react-hot-toast';
 import { useCallback } from 'react';
 import heroBg from '../../dummy_data/hero-bg2.png';
-
 
 export default function Products() {
   const [products, setProducts] = useState([]);
@@ -36,7 +36,7 @@ export default function Products() {
 
   useEffect(() => {
     if (products.length > 0) {
-      const uniqueCategories = ['all', ...new Set(products.map(p => p.category))];
+      const uniqueCategories = ['all', ...new Set(products.map(p => p.category).filter(Boolean))];
       setCategories(uniqueCategories);
     }
   }, [products]);
@@ -57,6 +57,8 @@ export default function Products() {
         ...(filters.inStock && { inStock: 'true' })
       });
 
+      console.log('🔄 Loading products with params:', params.toString());
+      
       const response = await fetch(`/api/products?${params}`);
       
       if (!response.ok) {
@@ -65,23 +67,43 @@ export default function Products() {
       
       const data = await response.json();
       
-      if (data.results) {
-        setProducts(data.results);
-        setPagination(prev => ({
-          ...prev,
-          total: data.count || data.pagination?.total || 0,
-          pages: data.pagination?.pages || Math.ceil((data.count || 0) / pagination.limit)
-        }));
-      } else {
-        setProducts(data.data || data.products || []);
-        setPagination(prev => ({
-          ...prev,
-          total: data.total || data.count || 0,
-          pages: data.pages || Math.ceil((data.total || data.count || 0) / pagination.limit)
-        }));
+      console.log('📦 API response:', data);
+      
+      if (data.success === false) {
+        throw new Error(data.error || 'Failed to load products');
       }
+      
+      // Handle different response formats
+      let productsData = [];
+      let totalCount = 0;
+      
+      if (data.results) {
+        productsData = data.results;
+        totalCount = data.count || data.pagination?.total || 0;
+      } else if (data.data) {
+        productsData = data.data;
+        totalCount = data.total || data.count || 0;
+      } else {
+        productsData = data.products || [];
+        totalCount = data.total || data.count || 0;
+      }
+      
+      // Client-side fallback: ensure only active products are shown
+      const activeProducts = productsData.filter(product => product.is_active !== false);
+      
+      if (activeProducts.length !== productsData.length) {
+        console.warn(`⚠️ Filtered out ${productsData.length - activeProducts.length} inactive products on client side`);
+      }
+      
+      setProducts(activeProducts);
+      setPagination(prev => ({
+        ...prev,
+        total: totalCount,
+        pages: data.pagination?.pages || Math.ceil(totalCount / pagination.limit)
+      }));
+      
     } catch (err) {
-      console.error('Error loading products:', err);
+      console.error('❌ Error loading products:', err);
       setError('Failed to load products. Please try again.');
       setProducts([]);
     } finally {
@@ -100,6 +122,18 @@ export default function Products() {
   };
 
   const handleAddToCart = useCallback((product) => {
+    // Don't allow adding inactive products to cart
+    if (product.is_active === false) {
+      toast.error('This product is no longer available');
+      return;
+    }
+    
+    // Don't allow adding out-of-stock products to cart
+    if (product.stock <= 0) {
+      toast.error('This product is out of stock');
+      return;
+    }
+    
     addToCart(product);
     toast.success(`${product.name} added to cart!`);
   }, [addToCart]);
@@ -118,19 +152,37 @@ export default function Products() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const filteredProducts = Array.isArray(products) ? products : [];
+  const clearAllFilters = () => {
+    setSearchInput('');
+    setFilters({
+      search: '',
+      category: 'all',
+      minPrice: '',
+      maxPrice: '',
+      inStock: false
+    });
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  // Final filtering on client side as safety measure
+  const filteredProducts = Array.isArray(products) 
+    ? products.filter(product => product.is_active !== false)
+    : [];
 
   if (loading) return <LoadingSpinner message="Loading products..." />;
 
   return (
     <>
       <Head>
-        <title>Products - WEB_PaymentGateway</title>
+        <title>Products - Gine&apos;s Dessert</title>
+        <meta name="description" content="Discover our delicious collection of desserts and treats" />
       </Head>
 
       <div className="min-h-screen bg-gray-50">
-        <div className="relative bg-gradient-to-r from-pink-500 to-purple-600 py-16 md:py-24"
-         style={{ backgroundImage: `url(${heroBg.src})` }} >
+        <div 
+          className="relative bg-gradient-to-r from-pink-500 to-purple-600 py-16 md:py-24"
+          style={{ backgroundImage: `url(${heroBg.src})` }}
+        >
           <div className="absolute inset-0 bg-black/10"></div>
           
           <div className="relative max-w-7xl mx-auto px-4 text-center">
@@ -157,7 +209,9 @@ export default function Products() {
 
         <div className="py-8">
           <div className="max-w-7xl mx-auto px-4">
+            {/* Filters Section */}
             <div className="flex flex-col gap-4 mb-8">
+              {/* Search Bar */}
               <form onSubmit={handleSearchSubmit} className="relative w-full max-w-2xl mx-auto">
                 <input
                   type="text"
@@ -175,15 +229,16 @@ export default function Products() {
                 </button>
               </form>
 
+              {/* Categories */}
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="font-medium text-gray-900">Browse Categories</h3>
-                  {filters.category !== 'all' && (
+                  {(filters.category !== 'all' || filters.search || filters.inStock) && (
                     <button 
-                      onClick={() => handleFilterChange('category', 'all')}
+                      onClick={clearAllFilters}
                       className="text-sm text-pink-600 hover:text-pink-700 font-medium"
                     >
-                      View All
+                      Clear Filters
                     </button>
                   )}
                 </div>
@@ -246,6 +301,7 @@ export default function Products() {
               </div>
             </div>
 
+            {/* Error State */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6 text-center">
                 <span>{error}</span>
@@ -255,33 +311,35 @@ export default function Products() {
               </div>
             )}
 
+            {/* Products Grid */}
             {!error && (
               <>
                 <div className="mb-6 text-center">
                   <span className="text-gray-600">
-                    {/* {filters.category !== 'all' && ` in ${filters.category.charAt(0).toUpperCase() + filters.category.slice(1)}`} */}
+                    Showing {filteredProducts.length} of {pagination.total} products
+                    {filters.category !== 'all' && ` in ${filters.category.charAt(0).toUpperCase() + filters.category.slice(1)}`}
+                    {filters.search && ` matching "${filters.search}"`}
                   </span>
                 </div>
 
                 {filteredProducts.length === 0 ? (
                   <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200">
                     <div className="text-6xl mb-4">🔍</div>
-                    <h3 className="text-xl font-semibold mb-2">No products found</h3>
-                    <p className="text-gray-600 mb-4">Try adjusting your search criteria or select a different category</p>
+                    <h3 className="text-xl font-semibold mb-2">No active products found</h3>
+                    <p className="text-gray-600 mb-4">
+                      {filters.search || filters.category !== 'all' || filters.inStock
+                        ? 'Try adjusting your search criteria or select a different category'
+                        : 'There are no active products available at the moment'
+                      }
+                    </p>
                     <button 
-                      onClick={() => {
-                        setSearchInput('');
-                        setFilters({
-                          search: '',
-                          category: 'all',
-                          minPrice: '',
-                          maxPrice: '',
-                          inStock: false
-                        });
-                      }}
+                      onClick={clearAllFilters}
                       className="bg-pink-600 text-white px-6 py-2 rounded-lg hover:bg-pink-700 transition-colors"
                     >
-                      Show All Products
+                      {filters.search || filters.category !== 'all' || filters.inStock
+                        ? 'Clear Filters & Show All'
+                        : 'Refresh Products'
+                      }
                     </button>
                   </div>
                 ) : (
@@ -299,6 +357,7 @@ export default function Products() {
                       ))}
                     </div>
 
+                    {/* Pagination */}
                     {pagination.pages > 1 && (
                       <div className="mt-12 flex justify-center items-center space-x-2">
                         <button

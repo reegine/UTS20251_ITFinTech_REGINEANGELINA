@@ -1,11 +1,8 @@
+// src/pages/api/payments/create/index.js
 import connectDB from '../../../../lib/mongodb';
 import Order from '../../../../models/Order';
 import Payment from '../../../../models/Payment';
-// Send WhatsApp notification for checkout
 import { sendOrderNotification } from '../../../../lib/whatsapp';
-
-// Add this after order creation, before sending response
-await sendOrderNotification(order, 'checkout');
 
 export default async function handler(req, res) {  
   res.setHeader('Content-Type', 'application/json');
@@ -45,6 +42,15 @@ export default async function handler(req, res) {
       });
     }
 
+    // Send WhatsApp notification for checkout - but don't block the process if it fails
+    console.log('🛒 Sending WhatsApp notification for NEW ORDER:', order.order_id);
+    try {
+      await sendOrderNotification(order, 'checkout');
+    } catch (whatsappError) {
+      console.warn('⚠️ WhatsApp notification failed, but continuing payment process:', whatsappError.message);
+      // Don't throw error, just log it and continue
+    }
+
     const xenditItems = [
       ...order.items.map(item => ({
         name: item.product_name,
@@ -55,8 +61,6 @@ export default async function handler(req, res) {
       ...(order.delivery_fee > 0 ? [{ name: 'Delivery Fee', quantity: 1, price: parseFloat(order.delivery_fee) }] : []),
       ...(order.admin_fee > 0 ? [{ name: 'Admin Fee', quantity: 1, price: parseFloat(order.admin_fee) }] : [])
     ];
-
-    const webhookUrl = 'https://uts-20251-it-fin-tech-regineangelin.vercel.app/api/webhooks/xendit';
 
     const baseUrl = (process.env.NEXTAUTH_URL || 'https://uts-20251-it-fin-tech-regineangelin.vercel.app').trim();
     const successUrl = `${baseUrl}/orders?success=true`;
@@ -145,6 +149,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
+    console.error('Payment creation error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error: ' + error.message,

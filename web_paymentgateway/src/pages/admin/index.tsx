@@ -13,13 +13,15 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
-  const { user, token } = useAuth();
+  const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user && user.role !== 'admin') {
+    if (authLoading) return;
+
+    if (!user || user.role !== 'admin') {
       router.push('/');
       return;
     }
@@ -27,7 +29,15 @@ export default function AdminDashboard() {
     if (token) {
       fetchDashboardData();
     }
-  }, [user, token, router]);
+  }, [user, token, router, authLoading]);
+
+  useEffect(() => {
+    console.log('🔍 Admin Debug Info:');
+    console.log('- User:', user);
+    console.log('- User Role:', user?.role);
+    console.log('- Token exists:', !!token);
+    console.log('- Is Admin?', user?.role === 'admin');
+  }, [user, token]);
 
   const fetchDashboardData = async () => {
     try {
@@ -48,21 +58,24 @@ export default function AdminDashboard() {
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin h-12 w-12 border-4 border-pink-400 border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+
   if (!user || user.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
           <p>You need admin privileges to access this page.</p>
+          <p className="text-sm text-gray-600 mt-2">
+            Current role: {user?.role || 'not logged in'}
+          </p>
         </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin h-12 w-12 border-4 border-pink-400 border-t-transparent rounded-full"></div>
       </div>
     );
   }
@@ -125,11 +138,12 @@ export default function AdminDashboard() {
               </div>
             </Link>
 
-            <Link href="/admin/settings" className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            {/* ✅ Replaced Settings with User Management */}
+            <Link href="/admin/users" className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
               <div className="text-center">
-                <div className="text-3xl mb-3">⚙️</div>
-                <h3 className="font-semibold text-gray-900">Settings</h3>
-                <p className="text-gray-600 text-sm mt-2">Configure shop settings</p>
+                <div className="text-3xl mb-3">👥</div>
+                <h3 className="font-semibold text-gray-900">User Management</h3>
+                <p className="text-gray-600 text-sm mt-2">Manage admins and users</p>
               </div>
             </Link>
           </div>

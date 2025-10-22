@@ -1,8 +1,8 @@
+// src/pages/api/webhooks/xendit.js
 import connectDB from '../../../lib/mongodb';
 import Order from '../../../models/Order';
 import Payment from '../../../models/Payment';
 import { sendOrderNotification } from '../../../lib/whatsapp';
-
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,14 +20,15 @@ export default async function handler(req, res) {
   try {
     await connectDB();
 
-    console.log('Webhook headers:', {
+    console.log('📨 Webhook received from Xendit');
+    console.log('Headers:', {
       'x-callback-token': req.headers['x-callback-token'],
       'webhook-id': req.headers['webhook-id'],
       'content-type': req.headers['content-type']
     });
 
     const webhookData = req.body;
-    console.log('📨 Webhook body received:', JSON.stringify(webhookData, null, 2));
+    console.log('📦 Webhook body:', JSON.stringify(webhookData, null, 2));
 
     let status, paidAt, externalId;
 
@@ -40,18 +41,21 @@ export default async function handler(req, res) {
       paidAt = webhookData.paid_at;
       externalId = webhookData.external_id;
     } else {
+      console.warn('⚠️ Unknown webhook format');
       return res.status(400).json({ error: 'Unknown webhook format' });
     }
 
-    console.log(`🔍 Looking up payment via external_id (order_id): ${externalId}`);
+    console.log(`🔍 Processing webhook for order: ${externalId}, status: ${status}`);
 
     const order = await Order.findOne({ order_id: externalId });
     if (!order) {
+      console.error(`❌ Order not found: ${externalId}`);
       return res.status(200).json({ received: true, warning: 'Order not found' });
     }
 
     const payment = await Payment.findOne({ order: order._id }).populate('order');
     if (!payment) {
+      console.error(`❌ Payment not found for order: ${externalId}`);
       return res.status(200).json({ received: true, warning: 'Payment not found' });
     }
 
@@ -78,7 +82,7 @@ export default async function handler(req, res) {
     }
 
     await payment.save();
-    console.log(`Updated payment for order ${externalId} to status: ${paymentStatus}`);
+    console.log(`✅ Updated payment for order ${externalId} to status: ${paymentStatus}`);
 
     let orderStatus = 'pending';
     if (status === 'PAID') {
@@ -91,14 +95,21 @@ export default async function handler(req, res) {
 
     await Order.findByIdAndUpdate(order._id, {
       status: orderStatus,
-      updated_at: new Date()
+      updatedAt: new Date()
     });
     
-    console.log(`Updated order ${externalId} to status: ${orderStatus}`);
+    console.log(`✅ Updated order ${externalId} to status: ${orderStatus}`);
 
     // Send WhatsApp notification for payment completion
     if (orderStatus === 'paid') {
-      await sendOrderNotification(order, 'payment');
+      console.log(`💰 Sending payment completion notification for order: ${externalId}`);
+      try {
+        await sendOrderNotification(order, 'payment');
+        console.log(`✅ Payment notification sent successfully for order: ${externalId}`);
+      } catch (whatsappError) {
+        console.warn(`⚠️ Payment WhatsApp notification failed: ${whatsappError.message}`);
+        // Don't fail the webhook if WhatsApp fails
+      }
     }
 
     res.status(200).json({ 
@@ -109,7 +120,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Webhook processing error:', error);
+    console.error('❌ Webhook processing error:', error);
     if (error.name === 'ValidationError') {
       console.error('Validation errors:', error.errors);
     }
