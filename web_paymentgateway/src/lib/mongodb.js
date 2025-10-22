@@ -1,15 +1,20 @@
-import mongoose from 'mongoose';
+import { MongoClient } from 'mongodb';
 
 const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_DB = process.env.MONGODB_DB;
 
 if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI environment variable');
 }
 
-let cached = global.mongoose;
+if (!MONGODB_DB) {
+  throw new Error('Please define the MONGODB_DB environment variable');
+}
+
+let cached = global.mongo;
 
 if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
+  cached = global.mongo = { conn: null, promise: null };
 }
 
 async function connectDB() {
@@ -19,22 +24,19 @@ async function connectDB() {
 
   if (!cached.promise) {
     const opts = {
-      bufferCommands: false,
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      return mongoose;
+    cached.promise = MongoClient.connect(MONGODB_URI, opts).then((client) => {
+      return {
+        client,
+        db: client.db(MONGODB_DB),
+      };
     });
   }
-
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    throw e;
-  }
-
-  return cached.conn;
+  cached.conn = await cached.promise;
+  return cached.conn.db;
 }
 
 export default connectDB;

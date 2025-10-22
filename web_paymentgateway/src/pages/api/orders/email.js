@@ -22,6 +22,17 @@ export default async function handler(req, res) {
 
     const db = await connectDB();
     
+    // Add debug logging and connection check
+    console.log('🔍 Database connection state:', db ? 'Connected' : 'Not connected');
+    
+    if (!db || !db.collection) {
+      console.error('❌ Database connection failed in orders/email');
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Database connection failed' 
+      });
+    }
+
     // Find orders by customer_email
     const orders = await db.collection('orders')
       .find({ customer_email: email })
@@ -39,7 +50,7 @@ export default async function handler(req, res) {
     console.error('❌ Error fetching orders by email:', error);
     return res.status(500).json({ 
       success: false, 
-      error: 'Failed to fetch orders' 
+      error: 'Failed to fetch orders: ' + error.message 
     });
   }
 }

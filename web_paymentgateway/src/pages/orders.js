@@ -54,20 +54,25 @@ export default function Orders() {
       setLoading(true);
       setError(null);
       
-      // Use the correct endpoint
       const apiUrl = `/api/orders/email?email=${encodeURIComponent(email)}`;
       console.log('🔄 Calling API:', apiUrl);
       
       const response = await fetch(apiUrl);
       
       console.log('📊 Response status:', response.status);
-      console.log('📊 Response ok:', response.ok);
       
       if (!response.ok) {
-        // Get more detailed error info
-        const errorText = await response.text();
-        console.error('❌ Response error:', errorText);
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
@@ -82,7 +87,16 @@ export default function Orders() {
       }
     } catch (err) {
       console.error('❌ Error loading orders:', err);
-      setError('Failed to load orders. Please check if the orders API endpoint exists.');
+      
+      // More specific error messages
+      if (err.message.includes('Database connection failed')) {
+        setError('Service temporarily unavailable. Please try again later.');
+      } else if (err.message.includes('500')) {
+        setError('Server error. Please try again later.');
+      } else {
+        setError('Failed to load orders. Please try again.');
+      }
+      
       setOrders([]);
     } finally {
       setLoading(false);

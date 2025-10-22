@@ -23,14 +23,30 @@ export default async function handler(req, res) {
 
     // Get order details from database
     const db = await connectDB();
+    
+    // Add debug logging to check the database connection
+    console.log('🔍 Database connection:', typeof db);
+    console.log('🔍 Database collections:', db?.collection ? 'Available' : 'Not available');
+    
+    if (!db || !db.collection) {
+      console.error('❌ Database connection failed');
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Database connection failed' 
+      });
+    }
+
     const order = await db.collection('orders').findOne({ order_id });
 
     if (!order) {
+      console.warn('⚠️ Order not found:', order_id);
       return res.status(404).json({ 
         success: false, 
         error: 'Order not found' 
       });
     }
+
+    console.log('✅ Order found:', order.order_id);
 
     // Send WhatsApp notification with type 'payment'
     const notificationResult = await sendOrderNotification(order, 'payment');
