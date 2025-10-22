@@ -1,4 +1,4 @@
-import { connectToDatabase } from '../../../lib/mongodb';
+import connectDB from '../../../lib/mongodb';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -20,10 +20,9 @@ export default async function handler(req, res) {
 
     console.log('🔍 Searching orders for email:', email);
 
-    // Use the new connection function
-    const { db } = await connectToDatabase();
+    const db = await connectDB();
     
-    console.log('🔍 Database connection established');
+    console.log('🔍 Database connection state:', db ? 'Connected' : 'Not connected');
     
     if (!db) {
       console.error('❌ Database connection failed');
@@ -50,7 +49,7 @@ export default async function handler(req, res) {
     console.error('❌ Error fetching orders by email:', error);
     return res.status(500).json({ 
       success: false, 
-      error: 'Failed to fetch orders' 
+      error: 'Failed to fetch orders: ' + error.message 
     });
   }
 }

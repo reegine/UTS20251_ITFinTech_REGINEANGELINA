@@ -1,4 +1,4 @@
-import { connectToDatabase } from '../../../lib/mongodb';
+import connectDB from '../../../lib/mongodb';
 import { sendOrderNotification } from '../../../lib/whatsapp';
 
 export default async function handler(req, res) {
@@ -21,8 +21,7 @@ export default async function handler(req, res) {
 
     console.log('📤 Sending payment success notification for order:', order_id);
 
-    // Use the new connection function
-    const { db } = await connectToDatabase();
+    const db = await connectDB();
     
     console.log('🔍 Database connection established for notification');
     
