@@ -1,4 +1,4 @@
-import connectDB from '../../../lib/mongodb';
+import { connectToDatabase } from '../../../lib/mongodb';
 import { sendOrderNotification } from '../../../lib/whatsapp';
 
 export default async function handler(req, res) {
@@ -21,14 +21,12 @@ export default async function handler(req, res) {
 
     console.log('📤 Sending payment success notification for order:', order_id);
 
-    // Get order details from database
-    const db = await connectDB();
+    // Use the new connection function
+    const { db } = await connectToDatabase();
     
-    // Add debug logging to check the database connection
-    console.log('🔍 Database connection:', typeof db);
-    console.log('🔍 Database collections:', db?.collection ? 'Available' : 'Not available');
+    console.log('🔍 Database connection established for notification');
     
-    if (!db || !db.collection) {
+    if (!db) {
       console.error('❌ Database connection failed');
       return res.status(500).json({ 
         success: false, 
@@ -48,7 +46,7 @@ export default async function handler(req, res) {
 
     console.log('✅ Order found:', order.order_id);
 
-    // Send WhatsApp notification with type 'payment'
+    // Send WhatsApp notification
     const notificationResult = await sendOrderNotification(order, 'payment');
 
     if (notificationResult.success) {
