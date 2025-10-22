@@ -1,121 +1,131 @@
-// src/pages/api/admin/upload.js
-import multer from 'multer';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { v2 as cloudinary } from 'cloudinary';
 import adminAuth from '../../../middleware/adminAuth';
-import fs from 'fs';
 
-// Ensure upload directory exists
-const ensureUploadDir = () => {
-  const uploadDir = path.join(process.cwd(), 'public/uploads');
-  
-  // Create directory if it doesn't exist
-  if (!fs.existsSync(uploadDir)) {
-    console.log('📁 Creating upload directory:', uploadDir);
-    fs.mkdirSync(uploadDir, { recursive: true });
-    console.log('✅ Upload directory created successfully');
-  }
-  
-  return uploadDir;
-};
-
-// Configure multer for file upload
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = ensureUploadDir();
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  }
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  },
-});
-
-// Helper to run multer with Promise
-const runMiddleware = (req, res, fn) => {
+// Helper to handle stream upload
+const streamUpload = (buffer, folder = 'product_uploads') => {
   return new Promise((resolve, reject) => {
-    fn(req, res, (result) => {
-      if (result instanceof Error) {
-        return reject(result);
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
       }
-      return resolve(result);
-    });
+    );
+    uploadStream.end(buffer);
   });
 };
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ 
+    return res.status(405).json({
       success: false,
-      error: 'Method not allowed' 
+      error: 'Method not allowed',
     });
   }
 
   try {
-    // Ensure directory exists before processing upload
-    ensureUploadDir();
-    
-    await runMiddleware(req, res, upload.single('image'));
-
-    if (!req.file) {
-      return res.status(400).json({ 
+    // Parse multipart form data manually (since bodyParser is false)
+    const contentType = req.headers['content-type'];
+    if (!contentType || !contentType.includes('multipart/form-data')) {
+      return res.status(400).json({
         success: false,
-        error: 'No file uploaded' 
+        error: 'Content-Type must be multipart/form-data',
       });
     }
 
-    // Verify file was actually saved
-    if (!fs.existsSync(req.file.path)) {
-      throw new Error('File was not saved properly');
-    }
+    // Use busboy to parse file (lightweight alternative to multer)
+    const busboy = require('busboy');
+    const bb = busboy({ headers: req.headers });
 
-    // Return the image URL
-    const imageUrl = `/uploads/${req.file.filename}`;
-    console.log('✅ Image uploaded successfully:', {
-      filename: req.file.filename,
-      path: req.file.path,
-      size: req.file.size,
-      url: imageUrl
-    });
-    
-    res.status(200).json({ 
-      success: true,
-      imageUrl 
-    });
-  } catch (error) {
-    console.error('❌ Upload error:', error);
-    
-    // Clean up any partial uploads
-    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
-      try {
-        fs.unlinkSync(req.file.path);
-        console.log('🧹 Cleaned up failed upload file');
-      } catch (cleanupError) {
-        console.error('Failed to clean up file:', cleanupError);
+    let fileBuffer = null;
+    let mimeType = '';
+
+    bb.on('file', (name, file, info) => {
+      const { filename, encoding, mimeType: type } = info;
+      if (name !== 'image') {
+        file.resume();
+        return;
       }
-    }
-    
-    res.status(400).json({ 
+
+      if (!type.startsWith('image/')) {
+        file.resume();
+        return res.status(400).json({
+          success: false,
+          error: 'Only image files are allowed!',
+        });
+      }
+
+      mimeType = type;
+      const chunks = [];
+      file.on('data', (chunk) => chunks.push(chunk));
+      file.on('end', () => {
+        fileBuffer = Buffer.concat(chunks);
+      });
+    });
+
+    bb.on('close', async () => {
+      if (!fileBuffer) {
+        return res.status(400).json({
+          success: false,
+          error: 'No image file provided',
+        });
+      }
+
+      if (fileBuffer.length > 5 * 1024 * 1024) {
+        return res.status(400).json({
+          success: false,
+          error: 'File size exceeds 5MB limit',
+        });
+      }
+
+      try {
+        // Upload to Cloudinary
+        const result = await streamUpload(fileBuffer, 'product_uploads');
+        
+        console.log('✅ Image uploaded to Cloudinary:', result.secure_url);
+        
+        return res.status(200).json({
+          success: true,
+          imageUrl: result.secure_url,
+        });
+      } catch (uploadError) {
+        console.error('❌ Cloudinary upload error:', uploadError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to upload image to Cloudinary',
+        });
+      }
+    });
+
+    bb.on('error', (err) => {
+      console.error('❌ Busboy error:', err);
+      return res.status(500).json({
+        success: false,
+        error: 'File parsing failed',
+      });
+    });
+
+    req.pipe(bb);
+  } catch (error) {
+    console.error('❌ Upload handler error:', error);
+    return res.status(500).json({
       success: false,
-      error: error.message || 'Upload failed'
+      error: 'Internal server error during upload',
     });
   }
 }
 
+// Disable body parser to handle multipart
 export const config = {
   api: {
     bodyParser: false,
