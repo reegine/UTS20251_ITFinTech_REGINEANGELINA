@@ -1,3 +1,4 @@
+// src/pages/api/admin/analytics.js
 import connectDB from '../../../lib/mongodb';
 import Order from '../../../models/Order';
 import { verifyToken } from '../../../lib/auth';
@@ -7,6 +8,13 @@ export default async function handler(req, res) {
     await connectDB();
 
     const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    // Check if token exists
+    if (!token) {
+      console.error('❌ No token provided');
+      return res.status(401).json({ error: 'Authentication token required' });
+    }
+
     const decoded = await verifyToken(token);
 
     if (!decoded || decoded.role !== 'admin') {
@@ -104,6 +112,12 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error('analytics error', error);
+    
+    // Provide more specific error messages
+    if (error.message.includes('jwt') || error.message.includes('token')) {
+      return res.status(401).json({ error: 'Invalid authentication token' });
+    }
+    
     res.status(500).json({ error: 'Failed to fetch analytics: ' + (error.message || error) });
   }
 }

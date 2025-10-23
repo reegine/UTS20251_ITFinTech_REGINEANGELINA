@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useRouter } from 'next/router'; // Add this import
 import ProductCard from '../components/ProductCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Head from 'next/head';
@@ -28,6 +30,8 @@ export default function Products() {
   const [categories, setCategories] = useState(['all']);
 
   const { items: cartItems, addToCart, updateQuantity, removeFromCart } = useCart();
+  const { user } = useAuth();
+  const router = useRouter(); // Initialize router
 
   useEffect(() => {
     loadProducts();
@@ -119,6 +123,12 @@ export default function Products() {
   };
 
   const handleAddToCart = useCallback((product) => {
+    // Check if user is logged in - if not, redirect to login immediately
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
+    
     if (product.is_active === false) {
       toast.error('This product is no longer available');
       return;
@@ -131,16 +141,22 @@ export default function Products() {
     
     addToCart(product);
     toast.success(`${product.name} added to cart!`);
-  }, [addToCart]);
+  }, [addToCart, user, router]); // Add router to dependencies
 
   const handleQuantityChange = useCallback((productId, newQuantity) => {
+    // Check if user is logged in - if not, redirect to login immediately
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
+    
     if (newQuantity <= 0) {
       removeFromCart(productId);
       toast.success('Item removed from cart');
     } else {
       updateQuantity(productId, newQuantity);
     }
-  }, [updateQuantity, removeFromCart]);
+  }, [updateQuantity, removeFromCart, user, router]);
 
   const handlePageChange = (newPage) => {
     setPagination(prev => ({ ...prev, page: newPage }));
@@ -303,7 +319,7 @@ export default function Products() {
 
             {!error && (
               <>
-                <div className="mb-6 text-center">
+                <div className="mb-6 text-start">
                   <span className="text-gray-600">
                     Showing {filteredProducts.length} of {pagination.total} products
                     {filters.category !== 'all' && ` in ${filters.category.charAt(0).toUpperCase() + filters.category.slice(1)}`}
@@ -338,10 +354,11 @@ export default function Products() {
                         <ProductCard
                           key={product._id || product.id}
                           product={product}
-                          inCart={cartItems.some(item => item._id === product._id)}
-                          quantity={cartItems.find(item => item._id === product._id)?.quantity || 0}
+                          inCart={user ? cartItems.some(item => item._id === product._id) : false}
+                          quantity={user ? cartItems.find(item => item._id === product._id)?.quantity || 0 : 0}
                           onAddToCart={() => handleAddToCart(product)}
                           onQuantityChange={(newQty) => handleQuantityChange(product._id, newQty)}
+                          isUserLoggedIn={!!user}
                         />
                       ))}
                     </div>

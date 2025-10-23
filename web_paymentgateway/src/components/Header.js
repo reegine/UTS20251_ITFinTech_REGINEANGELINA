@@ -54,12 +54,48 @@ export default function Header() {
   };
 
   const handleCartClick = () => {
+    if (!user) {
+      // Immediately redirect to login page
+      router.push('/auth/login');
+      return;
+    }
+    
     setIsCartOpen(true);
     // Show notification if cart is empty
     if (getTotalItems() === 0) {
       showNotification('info', 'Your cart is empty. Add some products!');
     }
   };
+
+  // Cart button component to reuse in both desktop and mobile views
+  const CartButton = ({ className = "" }) => (
+    <button
+      onClick={handleCartClick}
+      className={`relative p-3 rounded-full bg-pink-50 hover:bg-pink-100 transition ${className}`}
+    >
+      <svg
+        className="w-6 h-6 text-pink-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 
+          2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 
+          2 0 100 4 2 2 0 000-4zm-8 
+          2a2 2 0 11-4 0 2 2 0 014 0z"
+        />
+      </svg>
+      {user && getTotalItems() > 0 && (
+        <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md">
+          {getTotalItems()}
+        </span>
+      )}
+    </button>
+  );
 
   return (
     <>
@@ -128,61 +164,11 @@ export default function Header() {
                 )}
               </div>
               
-              <button
-                onClick={handleCartClick}
-                className="relative p-3 rounded-full bg-pink-50 hover:bg-pink-100 transition"
-              >
-                <svg
-                  className="w-6 h-6 text-pink-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 
-                    2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 
-                    2 0 100 4 2 2 0 000-4zm-8 
-                    2a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-                {getTotalItems() > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md">
-                    {getTotalItems()}
-                  </span>
-                )}
-              </button>
+              <CartButton />
             </div>
 
             <div className="flex md:hidden items-center space-x-4">
-              <button
-                onClick={handleCartClick}
-                className="relative p-2 rounded-full bg-pink-50 hover:bg-pink-100 transition"
-              >
-                <svg
-                  className="w-6 h-6 text-pink-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 
-                    2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 
-                    2 0 100 4 2 2 0 000-4zm-8 
-                    2a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-                {getTotalItems() > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md">
-                    {getTotalItems()}
-                  </span>
-                )}
-              </button>
+              <CartButton className="p-2" />
 
               <button
                 onClick={toggleMobileMenu}
@@ -291,7 +277,10 @@ export default function Header() {
         />
       )}
 
-      <ShoppingCart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      {/* Only show ShoppingCart if user is logged in */}
+      {user && (
+        <ShoppingCart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      )}
 
       {/* Notification Component */}
       <Notification
