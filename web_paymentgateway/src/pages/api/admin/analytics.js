@@ -113,7 +113,6 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('analytics error', error);
     
-    // Provide more specific error messages
     if (error.message.includes('jwt') || error.message.includes('token')) {
       return res.status(401).json({ error: 'Invalid authentication token' });
     }
