@@ -1,7 +1,6 @@
 import connectDB from '../../../lib/mongodb';
 import User from '../../../models/User';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -23,21 +22,13 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '7d' }
-    );
-
-    const { password: _, ...userWithoutPassword } = user.toObject();
-
-    res.status(200).json({
+    // Instead of logging in directly, return that MFA is required
+    // MFA is now always enabled by default
+    return res.status(200).json({
       success: true,
-      data: {
-        user: userWithoutPassword,
-        token
-      },
-      message: 'Login successful'
+      requiresMFA: true,
+      userId: user._id,
+      message: 'Credentials verified. MFA required.'
     });
 
   } catch (error) {

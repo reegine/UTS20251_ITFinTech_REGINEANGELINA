@@ -11,24 +11,25 @@ export default async function handler(req, res) {
   try {
     await connectDB();
 
-    const { email } = req.body;
+    const { email, userId } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+    let user;
+    
+    if (userId) {
+      // If userId is provided, use it directly
+      user = await User.findById(userId);
+    } else if (email) {
+      // If email is provided, find user by email
+      user = await User.findOne({ email, isActive: true });
+    } else {
+      return res.status(400).json({ error: 'Email or User ID is required' });
     }
 
-    const user = await User.findOne({ email, isActive: true });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (!user.mfaEnabled) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'MFA_NOT_ENABLED',
-        message: 'MFA is not enabled for this account. Please use regular login.'
-      });
-    }
+    // MFA is always enabled now, so no need to check mfaEnabled
 
     const mfaCode = Math.random().toString().slice(2, 8);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); 

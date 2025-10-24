@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   try {
     await connectDB();
 
-    const { name, email, password, phone, role = 'user', mfaEnabled = false } = req.body;
+    const { name, email, password, phone, role = 'user' } = req.body;
 
     if (!name || !email || !password || !phone) {
       return res.status(400).json({ error: 'All fields are required' });
@@ -23,13 +23,14 @@ export default async function handler(req, res) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // MFA is always enabled by default
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
       phone,
       role,
-      mfaEnabled
+      mfaEnabled: true // Always true
     });
 
     const { password: _, ...userWithoutPassword } = user.toObject();

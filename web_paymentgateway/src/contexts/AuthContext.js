@@ -42,11 +42,8 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.error);
       }
 
-      setUser(data.data.user);
-      setToken(data.data.token);
-      localStorage.setItem('user', JSON.stringify(data.data.user));
-      localStorage.setItem('token', data.data.token);
-      
+      // Don't set user/token yet - wait for MFA verification
+      // Just return the response with userId for MFA flow
       return data; 
     } catch (error) {
       throw new Error(error.message || 'Login failed');
@@ -74,7 +71,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const sendMFACode = async (userId) => {
-    const response = await fetch('/api/auth/resend-mfa', {
+    const response = await fetch('/api/auth/initiate-mfa-login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -92,12 +89,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (userData) => {
+    // Remove mfaEnabled from userData since it's always enabled
+    const { mfaEnabled, ...registrationData } = userData;
+    
     const response = await fetch('/api/auth/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(userData),
+      body: JSON.stringify(registrationData),
     });
 
     const data = await response.json();
@@ -124,11 +124,14 @@ export const AuthProvider = ({ children }) => {
       throw new Error(data.error);
     }
 
+    // Only set user/token after successful MFA verification
     setUser(data.data.user);
     setToken(data.data.token);
     localStorage.setItem('user', JSON.stringify(data.data.user));
     localStorage.setItem('token', data.data.token);
     localStorage.removeItem('pendingUserId');
+    
+    return data;
   };
 
   const logout = () => {

@@ -11,8 +11,7 @@ export default function Register() {
     name: '',
     email: '',
     password: '',
-    phone: '',
-    mfaEnabled: false
+    phone: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -22,10 +21,10 @@ export default function Register() {
   const { notification, showNotification, hideNotification } = useNotification();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     }));
   };
 
@@ -119,6 +118,9 @@ export default function Register() {
                   value={formData.phone}
                   onChange={handleChange}
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  We'll send verification codes to this WhatsApp number for login security
+                </p>
               </div>
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
@@ -135,18 +137,13 @@ export default function Register() {
                   onChange={handleChange}
                 />
               </div>
-              <div className="flex items-center">
-                <input
-                  id="mfaEnabled"
-                  name="mfaEnabled"
-                  type="checkbox"
-                  className="h-4 w-4 text-pink-600 focus:ring-pink-500 border-gray-300 rounded"
-                  checked={formData.mfaEnabled}
-                  onChange={handleChange}
-                />
-                <label htmlFor="mfaEnabled" className="ml-2 block text-sm text-gray-900">
-                  Enable WhatsApp MFA for extra security
-                </label>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800 text-center">
+                  🔒 Two-factor authentication is always enabled for your security
+                </p>
+                <p className="text-xs text-blue-600 text-center mt-1">
+                  You'll receive verification codes via WhatsApp for every login
+                </p>
               </div>
             </div>
 
