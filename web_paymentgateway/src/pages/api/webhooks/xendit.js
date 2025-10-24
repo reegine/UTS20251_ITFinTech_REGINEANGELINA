@@ -1,7 +1,7 @@
 import connectDB from '../../../lib/mongodb';
 import Order from '../../../models/Order';
 import Payment from '../../../models/Payment';
-import { sendOrderNotification } from '../../../lib/whatsapp';
+import { sendOrderNotification, sendCustomerPaymentConfirmation } from '../../../lib/whatsapp';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -52,6 +52,13 @@ export default async function handler(req, res) {
       return res.status(200).json({ received: true, warning: 'Order not found' });
     }
 
+    console.log('✅ Order found:', {
+      orderId: order.order_id,
+      customerName: order.customer_name,
+      customerPhone: order.customer_phone,
+      totalAmount: order.total_amount
+    });
+
     const payment = await Payment.findOne({ order: order._id }).populate('order');
     if (!payment) {
       console.error(`❌ Payment not found for order: ${externalId}`);
@@ -100,12 +107,33 @@ export default async function handler(req, res) {
     console.log(`✅ Updated order ${externalId} to status: ${orderStatus}`);
 
     if (orderStatus === 'paid') {
-      console.log(`💰 Sending payment completion notification for order: ${externalId}`);
+      console.log(`💰 Sending payment completion notifications for order: ${externalId}`);
+      
+      // Send to admin
       try {
-        await sendOrderNotification(order, 'payment');
-        console.log(`✅ Payment notification sent successfully for order: ${externalId}`);
-      } catch (whatsappError) {
-        console.warn(`⚠️ Payment WhatsApp notification failed: ${whatsappError.message}`);
+        console.log('📤 Sending admin notification...');
+        const adminResult = await sendOrderNotification(order, 'payment');
+        if (adminResult.success) {
+          console.log(`✅ Admin payment notification sent for order: ${externalId}`);
+        } else {
+          console.warn(`⚠️ Admin notification failed: ${adminResult.error}`);
+        }
+      } catch (adminError) {
+        console.warn(`⚠️ Admin WhatsApp notification failed: ${adminError.message}`);
+      }
+      
+      // Send to customer
+      try {
+        console.log('📤 Sending customer notification...');
+        const customerResult = await sendCustomerPaymentConfirmation(order);
+        if (customerResult.success) {
+          console.log(`✅ Customer payment confirmation sent for order: ${externalId}`);
+        } else {
+          console.warn(`⚠️ Customer notification failed: ${customerResult.error}`);
+          console.warn(`⚠️ Customer notification details:`, customerResult);
+        }
+      } catch (customerError) {
+        console.warn(`⚠️ Customer WhatsApp notification failed: ${customerError.message}`);
       }
     }
 

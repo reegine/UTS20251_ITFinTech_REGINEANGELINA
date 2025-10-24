@@ -1,7 +1,7 @@
 import connectDB from '../../../../lib/mongodb';
 import Order from '../../../../models/Order';
 import Payment from '../../../../models/Payment';
-import { sendOrderNotification } from '../../../../lib/whatsapp';
+import { sendOrderNotification, sendCustomerOrderNotification } from '../../../../lib/whatsapp';
 
 export default async function handler(req, res) {  
   res.setHeader('Content-Type', 'application/json');
@@ -41,13 +41,7 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log('🛒 Sending WhatsApp notification for NEW ORDER:', order.order_id);
-    try {
-      await sendOrderNotification(order, 'checkout');
-    } catch (whatsappError) {
-      console.warn('⚠️ WhatsApp notification failed, but continuing payment process:', whatsappError.message);
-    }
-
+    // Create Xendit payment first to get the payment URL
     const xenditItems = [
       ...order.items.map(item => ({
         name: item.product_name,
@@ -132,6 +126,21 @@ export default async function handler(req, res) {
       payment_request_id: xenditData.id,
       xendit_response: xenditData
     });
+
+    // Send WhatsApp notifications after successful payment creation
+    console.log('📤 Sending WhatsApp notifications for NEW ORDER:', order.order_id);
+    
+    try {
+      // Send to admin with payment link
+      await sendOrderNotification(order, 'checkout', xenditData.invoice_url);
+      
+      // Send to customer with payment link
+      await sendCustomerOrderNotification(order, xenditData.invoice_url);
+      
+      console.log('✅ Both admin and customer notifications sent successfully');
+    } catch (whatsappError) {
+      console.warn('⚠️ WhatsApp notification failed, but continuing payment process:', whatsappError.message);
+    }
 
     res.status(200).json({
       success: true,

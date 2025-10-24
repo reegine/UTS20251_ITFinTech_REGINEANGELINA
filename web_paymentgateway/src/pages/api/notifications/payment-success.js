@@ -1,5 +1,6 @@
 import connectDB from '../../../lib/mongodb';
-import { sendOrderNotification } from '../../../lib/whatsapp';
+import Order from '../../../models/Order';
+import { sendOrderNotification, sendCustomerPaymentConfirmation } from '../../../lib/whatsapp';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -21,19 +22,12 @@ export default async function handler(req, res) {
 
     console.log('📤 Sending payment success notification for order:', order_id);
 
-    const db = await connectDB();
+    await connectDB();
     
     console.log('🔍 Database connection established for notification');
-    
-    if (!db) {
-      console.error('❌ Database connection failed');
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Database connection failed' 
-      });
-    }
 
-    const order = await db.collection('orders').findOne({ order_id });
+    // Use Mongoose model instead of native MongoDB driver
+    const order = await Order.findOne({ order_id });
 
     if (!order) {
       console.warn('⚠️ Order not found:', order_id);
@@ -43,22 +37,46 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log('✅ Order found:', order.order_id);
+    console.log('✅ Order found for notification:', {
+      orderId: order.order_id,
+      customerName: order.customer_name,
+      customerPhone: order.customer_phone
+    });
 
-    const notificationResult = await sendOrderNotification(order, 'payment');
+    // Send notification to admin
+    // console.log('📤 Sending admin notification...');
+    // const adminNotificationResult = await sendOrderNotification(order, 'payment');
 
-    if (notificationResult.success) {
-      console.log('✅ Payment success notification sent to admin');
+    // Send payment confirmation to customer
+    // console.log('📤 Sending customer notification...');
+    // const customerNotificationResult = await sendCustomerPaymentConfirmation(order);
+
+    console.log('📊 Notification results:', {
+      admin: adminNotificationResult.success,
+      customer: customerNotificationResult.success,
+      adminError: adminNotificationResult.error,
+      customerError: customerNotificationResult.error
+    });
+
+    if (adminNotificationResult.success && customerNotificationResult.success) {
+      console.log('✅ Payment success notifications sent to both admin and customer');
       return res.status(200).json({ 
         success: true, 
-        message: 'Payment notification sent successfully' 
+        message: 'Payment notifications sent successfully to both admin and customer' 
       });
     } else {
-      console.warn('⚠️ Failed to send payment notification:', notificationResult.error);
+      console.warn('⚠️ Partial notification failure:', {
+        admin: adminNotificationResult.error,
+        customer: customerNotificationResult.error
+      });
       return res.status(200).json({ 
         success: false, 
-        error: notificationResult.error,
-        message: 'Payment notification failed but order is still valid'
+        error: 'Some notifications failed',
+        details: {
+          admin: adminNotificationResult.error,
+          customer: customerNotificationResult.error
+        },
+        message: 'Payment processed but some notifications failed'
       });
     }
 
